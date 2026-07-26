@@ -130,24 +130,29 @@ class _CompactSplashLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 100,
-      height: 70,
-      child: ClipRect(
-        child: OverflowBox(
-          maxWidth: 132,
-          maxHeight: 132,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(28),
-            child: Image.asset(
-              AppAssets.appIconLogo,
-              width: 132,
-              height: 132,
-              fit: BoxFit.contain,
-              cacheWidth: 264,
-              cacheHeight: 264,
-            ),
+    return Container(
+      width: 92,
+      height: 92,
+      padding: const EdgeInsets.all(7),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.30)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Image.asset(
+          AppAssets.appIconLogo,
+          fit: BoxFit.cover,
+          cacheWidth: 192,
+          cacheHeight: 192,
         ),
       ),
     );
