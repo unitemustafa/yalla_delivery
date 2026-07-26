@@ -4,6 +4,7 @@ class AppColors {
   AppColors._();
 
   static const Color primary = Color(0xFF4F60F6);
+  static const Color splashBackground = Color(0xFF0E407C);
   static const Color success = Color(0xFF22C55E);
   static const Color warning = Color(0xFFF59E0B);
   static const Color error = Color(0xFFEF4444);
