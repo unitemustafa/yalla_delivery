@@ -18,8 +18,6 @@ class _SplashViewState extends State<SplashView>
   late final AnimationController _entranceController;
   late final Animation<double> _logoOpacity;
   late final Animation<double> _logoScale;
-  late final Animation<Offset> _taglineSlide;
-  late final Animation<double> _taglineOpacity;
   bool _motionPreferenceApplied = false;
   bool _hasTemporaryRestoreFailure = false;
   bool _isRestoring = false;
@@ -41,17 +39,6 @@ class _SplashViewState extends State<SplashView>
         curve: const Interval(0, 0.72, curve: Curves.easeOutBack),
       ),
     );
-    _taglineOpacity = CurvedAnimation(
-      parent: _entranceController,
-      curve: const Interval(0.42, 1, curve: Curves.easeOut),
-    );
-    _taglineSlide =
-        Tween<Offset>(begin: const Offset(0, 0.22), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _entranceController,
-            curve: const Interval(0.42, 1, curve: Curves.easeOutCubic),
-          ),
-        );
     _entranceController.forward();
     _restoreSession();
   }
@@ -119,33 +106,7 @@ class _SplashViewState extends State<SplashView>
                   opacity: _logoOpacity,
                   child: ScaleTransition(
                     scale: _logoScale,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(28),
-                      child: Image.asset(
-                        AppAssets.appIconLogo,
-                        width: 132,
-                        height: 132,
-                        fit: BoxFit.contain,
-                        cacheWidth: 264,
-                        cacheHeight: 264,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                FadeTransition(
-                  opacity: _taglineOpacity,
-                  child: SlideTransition(
-                    position: _taglineSlide,
-                    child: Text(
-                      'نوصلها لك أسرع',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.white.withValues(alpha: 0.88),
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0,
-                      ),
-                    ),
+                    child: const _CompactSplashLogo(),
                   ),
                 ),
                 if (_hasTemporaryRestoreFailure) ...[
@@ -156,6 +117,35 @@ class _SplashViewState extends State<SplashView>
                   ),
                 ],
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CompactSplashLogo extends StatelessWidget {
+  const _CompactSplashLogo();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 100,
+      height: 70,
+      child: ClipRect(
+        child: OverflowBox(
+          maxWidth: 132,
+          maxHeight: 132,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: Image.asset(
+              AppAssets.appIconLogo,
+              width: 132,
+              height: 132,
+              fit: BoxFit.contain,
+              cacheWidth: 264,
+              cacheHeight: 264,
             ),
           ),
         ),
