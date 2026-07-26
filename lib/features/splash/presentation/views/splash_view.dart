@@ -123,16 +123,16 @@ class _SplashViewState extends State<SplashView>
                       borderRadius: BorderRadius.circular(28),
                       child: Image.asset(
                         AppAssets.appIconLogo,
-                        width: 248,
-                        height: 248,
+                        width: 132,
+                        height: 132,
                         fit: BoxFit.contain,
-                        cacheWidth: 496,
-                        cacheHeight: 496,
+                        cacheWidth: 264,
+                        cacheHeight: 264,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 8),
                 FadeTransition(
                   opacity: _taglineOpacity,
                   child: SlideTransition(
