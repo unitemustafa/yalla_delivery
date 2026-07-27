@@ -60,12 +60,8 @@ class _SplashViewState extends State<SplashView>
         _isRestoring = true;
       });
     }
-    final results = await Future.wait<dynamic>([
-      Future<void>.delayed(const Duration(milliseconds: 1500)),
-      AuthSession.instance.restore(),
-    ]);
+    final restoreResult = await AuthSession.instance.restore();
     if (!mounted) return;
-    final restoreResult = results[1] as AuthRestoreResult;
     setState(() {
       _isRestoring = false;
     });

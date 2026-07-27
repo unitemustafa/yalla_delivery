@@ -1,5 +1,6 @@
 ﻿import java.io.FileInputStream
 import java.util.Properties
+import java.util.Base64 as JavaBase64
 
 plugins {
     id("com.android.application")
@@ -16,10 +17,42 @@ val requestedReleaseBuild = gradle.startParameter.taskNames.any {
     it.contains("release", ignoreCase = true)
 }
 
+fun decodedDartDefines(): Map<String, String> {
+    return providers.gradleProperty("dart-defines").orNull.orEmpty()
+        .split(",")
+        .mapNotNull { encoded ->
+            runCatching {
+                String(
+                    JavaBase64.getDecoder().decode(encoded),
+                    Charsets.UTF_8,
+                )
+            }.getOrNull()
+        }
+        .mapNotNull { define ->
+            val parts = define.split("=", limit = 2)
+            if (parts.size == 2) parts[0] to parts[1] else null
+        }
+        .toMap()
+}
+
 if (requestedReleaseBuild && !hasReleaseKeystore) {
     throw GradleException(
         "Release signing is not configured. Add android/key.properties and the release keystore."
     )
+}
+
+if (requestedReleaseBuild) {
+    val apiBaseUrl = decodedDartDefines()["API_BASE_URL"].orEmpty()
+    if (!apiBaseUrl.startsWith("https://")) {
+        throw GradleException(
+            "Release requires an HTTPS API_BASE_URL dart define."
+        )
+    }
+    if (!file("google-services.json").exists()) {
+        throw GradleException(
+            "Release requires android/app/google-services.json for the courier app."
+        )
+    }
 }
 
 if (hasReleaseKeystore) {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +14,13 @@ Future<void> main() async {
   // Fail immediately if a release build was created without
   // the production backend URL.
   AuthSession.apiBaseUrl;
+  runApp(const YallaHomeApp());
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(_initializeBackgroundServices());
+  });
+}
+
+Future<void> _initializeBackgroundServices() async {
   final firebaseReady = await CourierPushService.instance.initialize();
   if (firebaseReady) {
     await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
@@ -26,6 +35,4 @@ Future<void> main() async {
       };
     }
   }
-
-  runApp(const YallaHomeApp());
 }

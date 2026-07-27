@@ -20,7 +20,17 @@ flutter run
 ```powershell
 flutter analyze
 flutter test
+dart run tool/release_preflight.dart env/production.json --platform=android
+flutter build appbundle --release --obfuscate `
+  --split-debug-info=build/debug-symbols/android `
+  --dart-define-from-file=env/production.json
 ```
+
+The Android check also requires the courier Firebase configuration. Use
+`--platform=ios` before an internal iOS archive; it requires
+`GoogleService-Info.plist` and an Apple Development Team.
+Archive the generated debug-symbol directory with every internal release so
+obfuscated Crashlytics stack traces can be decoded.
 
 ## Authentication sessions
 

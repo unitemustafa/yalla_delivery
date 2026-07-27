@@ -67,7 +67,7 @@ class CourierPushService {
   StreamSubscription<RemoteMessage>? _foregroundSubscription;
   StreamSubscription<RemoteMessage>? _openedSubscription;
   StreamSubscription<String>? _tokenSubscription;
-  bool _initialized = false;
+  Future<bool>? _initialization;
   bool _firebaseReady = false;
   bool _permissionRequested = false;
   bool _disablingAccount = false;
@@ -86,9 +86,11 @@ class CourierPushService {
     return pending;
   }
 
-  Future<bool> initialize() async {
-    if (_initialized) return _firebaseReady;
-    _initialized = true;
+  Future<bool> initialize() {
+    return _initialization ??= _initialize();
+  }
+
+  Future<bool> _initialize() async {
     try {
       FirebaseMessaging.onBackgroundMessage(courierFirebaseBackgroundHandler);
       await Firebase.initializeApp();
@@ -116,6 +118,7 @@ class CourierPushService {
   Future<void> registerAuthenticatedDevice() async {
     if (AuthSession.instance.currentUser?['role'] != 'representative') return;
     try {
+      if (!await initialize()) return;
       if (!await _ensureNotificationPermission()) return;
       final token = await FirebaseMessaging.instance.getToken();
       if (token != null && token.isNotEmpty) await _registerToken(token);
