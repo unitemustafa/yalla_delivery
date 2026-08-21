@@ -1,8 +1,9 @@
-# Yalla Home release checklist
+# Yalla Delivery release checklist
 
 ## Automated gates
 
 - `flutter analyze` completes with no diagnostics.
+- `dart run tool/check_source_size.dart` reports no Dart file over 800 lines.
 - `flutter test` passes.
 - Android App Bundle builds with `env/production.json`.
 - The release manifest blocks cleartext traffic and Android backup.

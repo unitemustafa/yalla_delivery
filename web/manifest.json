@@ -1,11 +1,11 @@
 {
-    "name": "Yalla Home",
-    "short_name": "Yalla Home",
+    "name": "Yalla Delivery",
+    "short_name": "Yalla Delivery",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "Yalla Home delivery app.",
+    "description": "Yalla Delivery courier app.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

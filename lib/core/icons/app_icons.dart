@@ -118,11 +118,6 @@ class AppIcons {
     fontFamily: _fontFamily,
     fontPackage: _fontPackage,
   );
-  static const IconData setting_2 = IconData(
-    0xebde,
-    fontFamily: _fontFamily,
-    fontPackage: _fontPackage,
-  );
   static const IconData shopping_bag = IconData(
     0xebee,
     fontFamily: _fontFamily,

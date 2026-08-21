@@ -462,7 +462,7 @@ class _LoginHeader extends StatelessWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(14),
             child: Image.asset(
-              AppAssets.themedLogo(isDarkMode: isDark),
+              AppAssets.logo,
               fit: BoxFit.cover,
               cacheWidth: 192,
               cacheHeight: 192,

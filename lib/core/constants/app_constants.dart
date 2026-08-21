@@ -1,3 +1,3 @@
 abstract final class AppConstants {
-  static const appName = 'يلا هوم';
+  static const appName = 'Yalla Delivery';
 }

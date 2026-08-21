@@ -14,15 +14,4 @@ class AppAssets {
       '$_placeholdersPath/default_courier.webp';
 
   static const String logo = '$_logosPath/yallahome_logo.webp';
-  static const String appIconLogo = logo;
-  static const String lightThemeLogo = logo;
-  static const String darkThemeLogo = logo;
-  static const String defaultAvatar = appIconLogo;
-
-  static const String blackLogo = darkThemeLogo;
-  static const String whiteLogo = lightThemeLogo;
-
-  static String themedLogo({required bool isDarkMode}) {
-    return logo;
-  }
 }

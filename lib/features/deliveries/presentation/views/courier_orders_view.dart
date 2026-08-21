@@ -5,6 +5,7 @@ import '../../../../core/formatters/app_currency.dart';
 import '../../../../core/icons/app_icons.dart';
 import '../../../../core/presentation/widgets/page_top_bar.dart';
 import '../../domain/courier_order.dart';
+import '../extensions/courier_order_status_presentation.dart';
 import '../widgets/courier_notifications_button.dart';
 import '../widgets/order_card.dart';
 import 'order_details_view.dart';

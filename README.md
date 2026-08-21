@@ -1,8 +1,8 @@
-# Yalla Home
+# Yalla Delivery
 
-Yalla Home is a Flutter courier application for managing delivery orders. It
+Yalla Delivery is a Flutter courier application for managing delivery orders. It
 provides an Arabic-first, right-to-left workflow for Yalla Market delivery
-representatives and connects to the Yalla Home REST API.
+representatives and connects to the Yalla Delivery REST API.
 
 ## Features
 
@@ -30,7 +30,7 @@ Before running the project, install:
 - A Flutter SDK compatible with Dart `^3.11.4`
 - Android Studio and the Android SDK for Android development
 - Xcode and CocoaPods for iOS development
-- A running Yalla Home backend API
+- A running Yalla Delivery backend API
 
 ## Getting Started
 
@@ -82,6 +82,7 @@ Run static analysis and the test suite before submitting changes:
 
 ```bash
 flutter analyze
+dart run tool/check_source_size.dart
 flutter test
 ```
 

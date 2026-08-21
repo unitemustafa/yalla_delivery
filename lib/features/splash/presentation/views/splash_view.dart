@@ -145,7 +145,7 @@ class _CompactSplashLogo extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Image.asset(
-          AppAssets.appIconLogo,
+          AppAssets.logo,
           fit: BoxFit.cover,
           cacheWidth: 192,
           cacheHeight: 192,

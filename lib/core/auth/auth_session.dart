@@ -1,10 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../network/api_exception.dart';
+import 'auth_api_client.dart';
 import 'auth_token_store.dart';
 import 'password_changed_notifier.dart';
 import 'session_expired_notifier.dart';
@@ -25,13 +24,15 @@ class AuthSession {
     AuthDelay? delay,
     Duration requestTimeout = const Duration(seconds: 20),
     String? baseUrl,
-  }) : _client = client ?? http.Client(),
+  }) : _api = AuthApiClient(
+         client: client ?? http.Client(),
+         baseUrl: () => baseUrl ?? AuthSession.apiBaseUrl,
+         requestTimeout: requestTimeout,
+       ),
        _tokenStore = tokenStore ?? SecureAuthTokenStore(),
        _now = now ?? DateTime.now,
        _timerFactory = timerFactory ?? _createTimer,
-       _delay = delay ?? ((duration) => Future<void>.delayed(duration)),
-       _requestTimeout = requestTimeout,
-       _baseUrlOverride = baseUrl;
+       _delay = delay ?? ((duration) => Future<void>.delayed(duration));
 
   static final instance = AuthSession._();
 
@@ -85,13 +86,11 @@ class AuthSession {
     return uri.replace(path: path).toString();
   }
 
-  final http.Client _client;
+  final AuthApiClient _api;
   final AuthTokenStore _tokenStore;
   final AuthNow _now;
   final AuthTimerFactory _timerFactory;
   final AuthDelay _delay;
-  final Duration _requestTimeout;
-  final String? _baseUrlOverride;
 
   StoredAuthTokens? _tokens;
   Future<void>? _refreshInFlight;
@@ -108,17 +107,9 @@ class AuthSession {
   @visibleForTesting
   StoredAuthTokens? get tokensForTesting => _tokens;
 
-  Uri uri(String path) => Uri.parse(
-    '${_baseUrlOverride ?? apiBaseUrl}/${path.replaceFirst(RegExp(r'^/+'), '')}',
-  );
+  Uri uri(String path) => _api.uri(path);
 
-  String? absoluteUrl(Object? value) {
-    final text = value?.toString().trim() ?? '';
-    if (text.isEmpty) return null;
-    if (text.startsWith('http://') || text.startsWith('https://')) return text;
-    final root = Uri.parse(_baseUrlOverride ?? apiBaseUrl).origin;
-    return '$root/${text.replaceFirst(RegExp(r'^/+'), '')}';
-  }
+  String? absoluteUrl(Object? value) => _api.absoluteUrl(value);
 
   Future<AuthRestoreResult> restore() async {
     final restoredTokens = await _tokenStore.read();
@@ -161,24 +152,18 @@ class AuthSession {
     required String password,
     required bool remember,
   }) async {
-    final cleanIdentifier = _removeWhitespace(identifier);
-    final cleanPassword = _removeWhitespace(password);
-    final response = await _withRequestTimeout(
-      _client.post(
-        uri('auth/login/representative/'),
-        headers: const {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'identifier': cleanIdentifier,
-          'password': cleanPassword,
-          'remember': remember,
-        }),
-      ),
-    );
-    final data = _decode(response);
+    final cleanIdentifier = _api.removeWhitespace(identifier);
+    final cleanPassword = _api.removeWhitespace(password);
+    final response = await _api.postJson('auth/login/representative/', {
+      'identifier': cleanIdentifier,
+      'password': cleanPassword,
+      'remember': remember,
+    });
+    final data = _api.decode(response);
     _accountInactiveHandled = false;
     await _handleAccountInactiveResponse(data, notify: false);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _responseException(
+      throw _api.responseException(
         response,
         data,
         '\u062a\u0639\u0630\u0631 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644.',
@@ -217,9 +202,9 @@ class AuthSession {
       send: () => _authorizedGet(path),
       statusCode: (response) => response.statusCode,
     );
-    final data = _decode(response);
+    final data = _api.decode(response);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _responseException(
+      throw _api.responseException(
         response,
         data,
         '\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a.',
@@ -233,9 +218,9 @@ class AuthSession {
       send: () => _authorizedPost(path, body),
       statusCode: (response) => response.statusCode,
     );
-    final data = _decode(response);
+    final data = _api.decode(response);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _responseException(
+      throw _api.responseException(
         response,
         data,
         '\u062a\u0639\u0630\u0631 \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0637\u0644\u0628.',
@@ -249,9 +234,9 @@ class AuthSession {
       send: () => _authorizedPatch(path, body),
       statusCode: (response) => response.statusCode,
     );
-    final data = _decode(response);
+    final data = _api.decode(response);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _responseException(
+      throw _api.responseException(
         response,
         data,
         '\u062a\u0639\u0630\u0631 \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0637\u0644\u0628.',
@@ -265,9 +250,9 @@ class AuthSession {
       send: () => _authorizedDelete(path),
       statusCode: (response) => response.statusCode,
     );
-    final data = _decode(response);
+    final data = _api.decode(response);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _responseException(
+      throw _api.responseException(
         response,
         data,
         '\u062a\u0639\u0630\u0631 \u062d\u0630\u0641 \u0627\u0644\u0639\u0646\u0635\u0631.',
@@ -282,22 +267,13 @@ class AuthSession {
     List<int>? proofBytes,
     String? proofName,
   }) async {
-    Future<http.StreamedResponse> send() async {
-      final request = http.MultipartRequest('PATCH', uri(path));
-      request.headers['Authorization'] = 'Bearer $_accessToken';
-      request.fields.addAll(fields);
-      if (proofBytes != null && proofName != null) {
-        request.files.add(
-          http.MultipartFile.fromBytes(
-            'delivery_proof',
-            proofBytes,
-            filename: proofName,
-          ),
-        );
-      }
-      return _withRequestTimeout(
-        request.send(),
-        timeout: const Duration(seconds: 45),
+    Future<http.StreamedResponse> send() {
+      return _api.patchMultipart(
+        path,
+        accessToken: _accessToken,
+        fields: fields,
+        proofBytes: proofBytes,
+        proofName: proofName,
       );
     }
 
@@ -305,14 +281,11 @@ class AuthSession {
       send: send,
       statusCode: (response) => response.statusCode,
     );
-    final response = await _withRequestTimeout(
-      http.Response.fromStream(streamed),
-      timeout: const Duration(seconds: 45),
-    );
-    final data = _decode(response);
+    final response = await _api.responseFromStream(streamed);
+    final data = _api.decode(response);
     await _handleAccountInactiveResponse(data);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _responseException(
+      throw _api.responseException(
         response,
         data,
         '\u062a\u0639\u0630\u0631 \u062a\u0623\u0643\u064a\u062f \u0627\u0644\u062a\u0633\u0644\u064a\u0645.',
@@ -331,16 +304,9 @@ class AuthSession {
         }
         final active = _tokens;
         if (active == null || !active.hasAccessToken) return;
-        await _withRequestTimeout(
-          _client.post(
-            uri('auth/logout/'),
-            headers: {
-              'Authorization': 'Bearer ${active.accessToken}',
-              'Content-Type': 'application/json',
-            },
-            body: jsonEncode({'refreshToken': active.refreshToken}),
-          ),
-        );
+        await _api.postJson('auth/logout/', {
+          'refreshToken': active.refreshToken,
+        }, accessToken: active.accessToken);
       }
     } catch (_) {
       // Local logout must still complete when the network is unavailable.
@@ -369,9 +335,9 @@ class AuthSession {
 
   Future<Map<String, dynamic>> _fetchCurrentUserForRestore() async {
     final response = await _authorizedGet('auth/me/');
-    final data = _decode(response);
+    final data = _api.decode(response);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _responseException(
+      throw _api.responseException(
         response,
         data,
         '\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u062d\u0633\u0627\u0628.',
@@ -384,53 +350,25 @@ class AuthSession {
   }
 
   Future<http.Response> _authorizedGet(String path) {
-    return _withRequestTimeout(
-      _client.get(
-        uri(path),
-        headers: {'Authorization': 'Bearer $_accessToken'},
-      ),
-    );
+    return _api.get(path, accessToken: _accessToken);
   }
 
   Future<http.Response> _authorizedPost(
     String path,
     Map<String, dynamic> body,
   ) {
-    return _withRequestTimeout(
-      _client.post(
-        uri(path),
-        headers: {
-          'Authorization': 'Bearer $_accessToken',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(body),
-      ),
-    );
+    return _api.postJson(path, body, accessToken: _accessToken);
   }
 
   Future<http.Response> _authorizedPatch(
     String path,
     Map<String, dynamic> body,
   ) {
-    return _withRequestTimeout(
-      _client.patch(
-        uri(path),
-        headers: {
-          'Authorization': 'Bearer $_accessToken',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(body),
-      ),
-    );
+    return _api.patchJson(path, body, accessToken: _accessToken);
   }
 
   Future<http.Response> _authorizedDelete(String path) {
-    return _withRequestTimeout(
-      _client.delete(
-        uri(path),
-        headers: {'Authorization': 'Bearer $_accessToken'},
-      ),
-    );
+    return _api.delete(path, accessToken: _accessToken);
   }
 
   Future<T> _sendWithRefresh<T>({
@@ -441,12 +379,12 @@ class AuthSession {
     await _refreshAccessIfNeeded();
     var response = await send();
     if (response is http.Response) {
-      await _handleAccountInactiveResponse(_decode(response));
+      await _handleAccountInactiveResponse(_api.decode(response));
     }
     if (statusCode(response) == 401 && await _tryRefresh()) {
       response = await send();
       if (response is http.Response) {
-        await _handleAccountInactiveResponse(_decode(response));
+        await _handleAccountInactiveResponse(_api.decode(response));
       }
       if (statusCode(response) == 401) {
         await _expireSession(notify: true);
@@ -515,18 +453,14 @@ class AuthSession {
       );
     }
 
-    Future<http.Response> sendRefresh() => _withRequestTimeout(
-      _client.post(
-        uri('auth/refresh/'),
-        headers: const {'Content-Type': 'application/json'},
-        body: jsonEncode({'refreshToken': refresh}),
-      ),
-    );
+    Future<http.Response> sendRefresh() {
+      return _api.postJson('auth/refresh/', {'refreshToken': refresh});
+    }
 
     var response = await sendRefresh();
-    var data = _decode(response);
+    var data = _api.decode(response);
     if (response.statusCode == 429) {
-      final retryAfter = _retryAfterSeconds(response, data) ?? 1;
+      final retryAfter = _api.retryAfterSeconds(response, data) ?? 1;
       await _delay(Duration(seconds: retryAfter.clamp(1, 60).toInt()));
       if (refreshVersion != _sessionVersion || _isSessionExpired()) {
         throw const ApiException(
@@ -534,14 +468,14 @@ class AuthSession {
         );
       }
       response = await sendRefresh();
-      data = _decode(response);
+      data = _api.decode(response);
     }
     await _handleAccountInactiveResponse(data);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      if (_isPasswordChangedResponse(data)) {
+      if (_api.isPasswordChangedResponse(data)) {
         throw const ApiException(_passwordChangedMessage, statusCode: 401);
       }
-      throw _responseException(
+      throw _api.responseException(
         response,
         data,
         '\u0627\u0646\u062a\u0647\u062a \u0627\u0644\u062c\u0644\u0633\u0629.',
@@ -586,23 +520,6 @@ class AuthSession {
 
   bool _isAuthenticationFailure(int? statusCode) {
     return statusCode == 400 || statusCode == 401 || statusCode == 403;
-  }
-
-  Future<T> _withRequestTimeout<T>(
-    Future<T> request, {
-    Duration? timeout,
-  }) async {
-    try {
-      return await request.timeout(timeout ?? _requestTimeout);
-    } on TimeoutException {
-      throw const ApiException(
-        '\u0627\u0646\u062a\u0647\u062a \u0645\u0647\u0644\u0629 \u0627\u0644\u0627\u062a\u0635\u0627\u0644. \u062a\u062d\u0642\u0642 \u0645\u0646 \u0627\u0644\u0625\u0646\u062a\u0631\u0646\u062a \u0648\u062d\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649.',
-      );
-    } on http.ClientException {
-      throw const ApiException(
-        '\u062a\u0639\u0630\u0631 \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0628\u0627\u0644\u062e\u0627\u062f\u0645. \u062d\u0627\u0648\u0644 \u0645\u0631\u0629 \u0623\u062e\u0631\u0649.',
-      );
-    }
   }
 
   Future<void> _ensureSessionStillActive() async {
@@ -677,38 +594,19 @@ class AuthSession {
   @visibleForTesting
   void disposeForTesting() {
     _expiryTimer?.cancel();
-    _client.close();
-  }
-
-  dynamic _decode(http.Response response) {
-    if (response.body.trim().isEmpty) return null;
-    try {
-      return jsonDecode(utf8.decode(response.bodyBytes));
-    } catch (_) {
-      return null;
-    }
-  }
-
-  bool _hasErrorCode(dynamic data, String expectedCode) {
-    return data is Map && data['code']?.toString() == expectedCode;
+    _api.close();
   }
 
   Future<void> _handleAccountInactiveResponse(
     dynamic data, {
     bool notify = true,
   }) async {
-    if (!_hasErrorCode(data, 'account_inactive') || _accountInactiveHandled) {
+    if (!_api.hasErrorCode(data, 'account_inactive') ||
+        _accountInactiveHandled) {
       return;
     }
     _accountInactiveHandled = true;
     await _expireSession(notify: notify);
-  }
-
-  bool _isPasswordChangedResponse(dynamic data) {
-    if (_hasErrorCode(data, 'password_changed')) return true;
-    if (data is! Map) return false;
-    final detail = data['detail']?.toString().toLowerCase() ?? '';
-    return detail.contains('password changed');
   }
 
   void _notifyPasswordChanged() {
@@ -717,103 +615,6 @@ class AuthSession {
     PasswordChangedNotifier.instance.notifyPasswordChanged();
   }
 
-  String _message(dynamic data, String fallback) {
-    if (data is String && data.trim().isNotEmpty) {
-      return _localizedMessage(data);
-    }
-    if (data is List) {
-      for (final value in data) {
-        final message = _message(value, '');
-        if (message.isNotEmpty) return message;
-      }
-    }
-    if (data is Map) {
-      if (data['code'] is String) {
-        return _localizedCode(data['code'] as String);
-      }
-      if (data['detail'] is String) {
-        return _localizedMessage(data['detail'] as String);
-      }
-      for (final value in data.values) {
-        final message = _message(value, '');
-        if (message.isNotEmpty) return message;
-      }
-    }
-    return _localizedMessage(fallback);
-  }
-
-  ApiException _responseException(
-    http.Response response,
-    dynamic data,
-    String fallback,
-  ) {
-    return ApiException(
-      _message(data, fallback),
-      statusCode: response.statusCode,
-      code: data is Map ? data['code']?.toString() : null,
-      retryAfterSeconds: _retryAfterSeconds(response, data),
-    );
-  }
-
-  int? _retryAfterSeconds(http.Response response, dynamic data) {
-    if (data is Map) {
-      final value = data['retry_after_seconds'];
-      if (value is num && value > 0) return value.ceil();
-      final parsed = int.tryParse(value?.toString() ?? '');
-      if (parsed != null && parsed > 0) return parsed;
-    }
-    final parsed = int.tryParse(response.headers['retry-after'] ?? '');
-    return parsed != null && parsed > 0 ? parsed : null;
-  }
-
-  String _localizedMessage(String message) {
-    final normalized = message.trim().toLowerCase();
-    if (normalized.contains('invalid email or password')) {
-      return _invalidCredentialsMessage;
-    }
-    if (normalized.contains('this account belongs to an admin')) {
-      return _localizedCode('admin_account_not_allowed');
-    }
-    if (normalized.contains('this account belongs to a client')) {
-      return _localizedCode('client_account_not_allowed');
-    }
-    if (normalized.contains('this login is only for representative accounts')) {
-      return _localizedCode('representative_account_required');
-    }
-    if (normalized.contains('account email has not been verified')) {
-      return '\u0627\u0644\u062d\u0633\u0627\u0628 \u0644\u0645 \u064a\u062a\u0645 \u062a\u0641\u0639\u064a\u0644\u0647 \u0628\u0639\u062f.';
-    }
-    if (normalized.contains('not found')) {
-      return '\u0627\u0644\u0645\u0633\u0627\u0631 \u063a\u064a\u0631 \u0645\u0648\u062c\u0648\u062f. \u062a\u0623\u0643\u062f \u0645\u0646 \u0625\u0639\u062f\u0627\u062f \u0631\u0627\u0628\u0637 \u0627\u0644\u062e\u0627\u062f\u0645.';
-    }
-    return message;
-  }
-
-  String _localizedCode(String code) {
-    return switch (code.trim()) {
-      'admin_account_not_allowed' =>
-        '\u0647\u0630\u0627 \u062d\u0633\u0627\u0628 \u0645\u0633\u0624\u0648\u0644\u060c \u0633\u062c\u0651\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0645\u0646 \u0644\u0648\u062d\u0629 \u0627\u0644\u0625\u062f\u0627\u0631\u0629.',
-      'client_account_not_allowed' =>
-        '\u0647\u0630\u0627 \u062d\u0633\u0627\u0628 \u0639\u0645\u064a\u0644\u060c \u0627\u0633\u062a\u062e\u062f\u0645 \u062a\u0637\u0628\u064a\u0642 \u064a\u0644\u0627 \u0645\u0627\u0631\u0643\u062a.',
-      'representative_account_required' =>
-        '\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u0647\u0646\u0627 \u0645\u062e\u0635\u0635 \u0644\u062d\u0633\u0627\u0628\u0627\u062a \u0627\u0644\u0645\u0646\u062f\u0648\u0628\u064a\u0646 \u0641\u0642\u0637.',
-      'account_inactive' =>
-        '\u062a\u0645 \u0625\u064a\u0642\u0627\u0641 \u062d\u0633\u0627\u0628\u0643. \u062a\u0648\u0627\u0635\u0644 \u0645\u0639 \u0627\u0644\u062f\u0639\u0645.',
-      'session_expired' =>
-        '\u0627\u0646\u062a\u0647\u062a \u0627\u0644\u062c\u0644\u0633\u0629.',
-      'token_not_valid' =>
-        '\u0627\u0646\u062a\u0647\u062a \u0627\u0644\u062c\u0644\u0633\u0629.',
-      'rate_limited' => 'طلبات كتير في وقت قصير. استنى شوية وحاول تاني.',
-      _ => code,
-    };
-  }
-
-  String _removeWhitespace(String value) {
-    return value.replaceAll(RegExp(r'\s+'), '');
-  }
-
-  static const _invalidCredentialsMessage =
-      '\u0627\u0644\u0625\u064a\u0645\u064a\u0644 \u0623\u0648 \u0643\u0644\u0645\u0629 \u0627\u0644\u0633\u0631 \u063a\u064a\u0631 \u0635\u062d\u064a\u062d\u064a\u0646.';
   static const _passwordChangedMessage = 'تم تغيير كلمة المرور.';
 }
 

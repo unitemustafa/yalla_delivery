@@ -30,7 +30,7 @@ class CourierAccount {
     if (name.isNotEmpty) return name;
     return username?.trim().isNotEmpty == true
         ? username!.trim()
-        : 'مندوب Yalla Home';
+        : 'مندوب Yalla Delivery';
   }
 
   String get secondaryLabel {

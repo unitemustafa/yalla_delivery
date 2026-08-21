@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "يلا هوم" "\0"
-            VALUE "FileDescription", "يلا هوم" "\0"
+            VALUE "CompanyName", "Yalla Delivery" "\0"
+            VALUE "FileDescription", "Yalla Delivery" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "yalla_home" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 Yalla Home. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Yalla Delivery. All rights reserved." "\0"
             VALUE "OriginalFilename", "yalla_home.exe" "\0"
-            VALUE "ProductName", "يلا هوم" "\0"
+            VALUE "ProductName", "Yalla Delivery" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
