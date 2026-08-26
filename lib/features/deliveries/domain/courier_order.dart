@@ -73,14 +73,34 @@ class CourierOrderItem {
     required this.quantity,
     required this.price,
     this.subtotal,
+    this.description,
+    this.imageUrl,
+    this.sku,
   });
 
   final String name;
   final int quantity;
   final double price;
   final double? subtotal;
+  final String? description;
+  final String? imageUrl;
+  final String? sku;
 
   double get total => subtotal ?? price * quantity;
+}
+
+class CourierOrderOffer {
+  const CourierOrderOffer({
+    required this.title,
+    this.description,
+    this.imageUrl,
+    this.discount,
+  });
+
+  final String title;
+  final String? description;
+  final String? imageUrl;
+  final double? discount;
 }
 
 class CourierOrder {
@@ -102,13 +122,27 @@ class CourierOrder {
     required this.marketBranch,
     required this.marketCount,
     required this.marketSummary,
+    this.offers = const [],
     this.addressLabel,
+    this.addressInstructions,
     this.serviceCityName,
     this.deliveryAreaName,
     this.customerAvatarUrl,
     this.mapQuery,
     this.customerLocation,
     this.customerNotes,
+    this.orderImageUrl,
+    this.paymentMethod,
+    this.subtotal,
+    this.discount,
+    this.multiMarketFee,
+    this.fulfillmentType,
+    this.deliveryType,
+    this.shippingCompanyName,
+    this.etaMinMinutes,
+    this.etaMaxMinutes,
+    this.assignedAt,
+    this.updatedAt,
     this.deliveredAt,
     this.deliveryNote,
     this.deliveryProof,
@@ -132,13 +166,27 @@ class CourierOrder {
   final String marketBranch;
   final int marketCount;
   final String marketSummary;
+  final List<CourierOrderOffer> offers;
   final String? addressLabel;
+  final String? addressInstructions;
   final String? serviceCityName;
   final String? deliveryAreaName;
   final String? customerAvatarUrl;
   final String? mapQuery;
   final OrderLocation? customerLocation;
   final String? customerNotes;
+  final String? orderImageUrl;
+  final String? paymentMethod;
+  final double? subtotal;
+  final double? discount;
+  final double? multiMarketFee;
+  final String? fulfillmentType;
+  final String? deliveryType;
+  final String? shippingCompanyName;
+  final int? etaMinMinutes;
+  final int? etaMaxMinutes;
+  final DateTime? assignedAt;
+  final DateTime? updatedAt;
   final DateTime? deliveredAt;
   final String? deliveryNote;
   final DeliveryProof? deliveryProof;
@@ -153,6 +201,7 @@ class CourierOrder {
     final addressServiceCity = _map(address?['service_city']);
     final addressDeliveryArea = _map(address?['delivery_area']);
     final itemsJson = _list(json['items']);
+    final offersJson = _list(json['offers']);
     final rawStatus = json['status']?.toString() ?? '';
     final status = courierOrderStatusFromRaw(rawStatus);
     final createdAt = _parseDate(json['created_at']);
@@ -163,13 +212,23 @@ class CourierOrder {
     final items = itemsJson.map(_itemFromJson).toList();
     final label = _clean(address?['name']);
     final details = _clean(address?['details']);
+    final formattedAddress = _clean(address?['formatted_address']);
+    final street = _clean(address?['street']);
+    final buildingName = _clean(address?['building_name']);
+    final apartmentNumber = _clean(address?['apartment_number']);
+    final floor = _clean(address?['floor']);
     final manualArea = _clean(address?['manual_area']);
     final manualCity = _clean(address?['manual_city']);
     final areaName =
         _clean(addressDeliveryArea?['name']) ?? _clean(deliveryArea?['name']);
     final cityName =
         _clean(addressServiceCity?['name']) ?? _clean(serviceCity?['name']);
-    final formattedAddress = _joinUnique([
+    final displayAddress = _joinUnique([
+      formattedAddress,
+      street,
+      buildingName,
+      apartmentNumber,
+      floor,
       details,
       manualArea,
       manualCity,
@@ -187,24 +246,25 @@ class CourierOrder {
     final marketBranch = _clean(market?['branch']) ?? '';
     final marketCount = _int(json['market_count']);
     final marketNamesSummary = _clean(json['market_names_summary']);
+    final shippingCompany = _map(json['shipping_company']);
+    final recipientName = _clean(address?['recipient_name']);
+    final recipientPhone = _clean(address?['recipient_phone']);
 
     return CourierOrder(
       id: json['id'].toString(),
       customerName:
+          recipientName ??
           _clean(customer?['name']) ??
           _joinUnique([
             _clean(customer?['first_name']),
             _clean(customer?['last_name']),
           ]) ??
           'عميل',
-      phone: _clean(customer?['phone']) ?? '',
+      phone: recipientPhone ?? _clean(customer?['phone']) ?? '',
       address:
-          formattedAddress ??
-          label ??
-          areaName ??
-          cityName ??
-          'العنوان غير محدد',
+          displayAddress ?? label ?? areaName ?? cityName ?? 'العنوان غير محدد',
       addressLabel: label,
+      addressInstructions: _clean(address?['additional_instructions']),
       area: areaName ?? manualArea ?? cityName ?? manualCity ?? 'غير محدد',
       total: _number(json['total_price']),
       deliveryPrice: _optionalNumber(json['delivery_price']),
@@ -213,6 +273,7 @@ class CourierOrder {
       createdAt: createdAt,
       expectedDeliveryAt: assignedAt.add(const Duration(hours: 1)),
       items: items,
+      offers: offersJson.map(_offerFromJson).toList(),
       itemsCount: _int(
         json['items_count'],
         fallback: _sumItemQuantities(items),
@@ -231,11 +292,23 @@ class CourierOrder {
       customerAvatarUrl: AuthSession.instance.absoluteUrl(
         customer?['avatar_url'],
       ),
-      mapQuery: _joinUnique([formattedAddress, label, areaName, cityName]),
+      mapQuery: _joinUnique([displayAddress, label, areaName, cityName]),
       customerLocation: hasCustomerLocation
           ? OrderLocation(latitude: latitude, longitude: longitude)
           : null,
       customerNotes: _clean(json['description']),
+      orderImageUrl: AuthSession.instance.absoluteUrl(json['image']),
+      paymentMethod: _clean(json['payment_method']),
+      subtotal: _optionalNumber(json['subtotal_price']),
+      discount: _optionalNumber(json['discount']),
+      multiMarketFee: _optionalNumber(json['multi_market_fee']),
+      fulfillmentType: _clean(json['fulfillment_type']),
+      deliveryType: _clean(json['delivery_type']),
+      shippingCompanyName: _clean(shippingCompany?['name']),
+      etaMinMinutes: _optionalInt(json['eta_min_minutes']),
+      etaMaxMinutes: _optionalInt(json['eta_max_minutes']),
+      assignedAt: _parseOptionalDate(json['assigned_at']),
+      updatedAt: _parseOptionalDate(json['updated_at']),
       deliveredAt: deliveredAt,
       deliveryNote: _clean(json['delivery_note']),
       deliveryProofUrl: AuthSession.instance.absoluteUrl(
@@ -284,13 +357,27 @@ class CourierOrder {
       marketBranch: marketBranch,
       marketCount: marketCount,
       marketSummary: marketSummary,
+      offers: offers,
       addressLabel: addressLabel,
+      addressInstructions: addressInstructions,
       serviceCityName: serviceCityName,
       deliveryAreaName: deliveryAreaName,
       customerAvatarUrl: customerAvatarUrl,
       mapQuery: mapQuery,
       customerLocation: customerLocation,
       customerNotes: customerNotes,
+      orderImageUrl: orderImageUrl,
+      paymentMethod: paymentMethod,
+      subtotal: subtotal,
+      discount: discount,
+      multiMarketFee: multiMarketFee,
+      fulfillmentType: fulfillmentType,
+      deliveryType: deliveryType,
+      shippingCompanyName: shippingCompanyName,
+      etaMinMinutes: etaMinMinutes,
+      etaMaxMinutes: etaMaxMinutes,
+      assignedAt: assignedAt,
+      updatedAt: updatedAt,
       deliveredAt: deliveredAt ?? this.deliveredAt,
       deliveryNote: deliveryNote ?? this.deliveryNote,
       deliveryProof: deliveryProof ?? this.deliveryProof,
@@ -313,6 +400,19 @@ class CourierOrder {
       subtotal:
           _optionalNumber(item['item_subtotal']) ??
           _optionalNumber(item['subtotal']),
+      description: _clean(product?['description']),
+      imageUrl: AuthSession.instance.absoluteUrl(product?['image']),
+      sku: _clean(variant?['sku']),
+    );
+  }
+
+  static CourierOrderOffer _offerFromJson(Map<String, dynamic> row) {
+    final offer = _map(row['offer']) ?? row;
+    return CourierOrderOffer(
+      title: _clean(offer['title']) ?? '\u0639\u0631\u0636',
+      description: _clean(offer['description']),
+      imageUrl: AuthSession.instance.absoluteUrl(offer['image']),
+      discount: _optionalNumber(offer['discount']),
     );
   }
 
@@ -363,6 +463,10 @@ class CourierOrder {
 
   static int _int(Object? value, {int fallback = 0}) {
     return int.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
+  static int? _optionalInt(Object? value) {
+    return int.tryParse(value?.toString() ?? '');
   }
 
   static int _sumItemQuantities(List<CourierOrderItem> items) {

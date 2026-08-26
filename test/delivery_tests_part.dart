@@ -154,6 +154,68 @@ void _registerDeliveryTests() {
     expect(order.area, 'منطقة اختبار الإطلاق');
   });
 
+  test('parses the expanded courier order delivery context', () {
+    final order = CourierOrder.fromJson({
+      'id': 'YM-2',
+      'status': 'assigned',
+      'created_at': '2026-08-26T08:00:00Z',
+      'assigned_at': '2026-08-26T08:10:00Z',
+      'image': 'http://localhost/api/v1/orders/2/image/',
+      'payment_method': 'cash_on_delivery',
+      'subtotal_price': '500.00',
+      'discount': '50.00',
+      'multi_market_fee': '10.00',
+      'delivery_price': '40.00',
+      'total_price': '500.00',
+      'eta_min_minutes': 25,
+      'eta_max_minutes': 40,
+      'shipping_company': {'name': 'شركة شحن'},
+      'customer': {'name': 'العميل', 'phone': '01000000000'},
+      'delivery_address': {
+        'recipient_name': 'المستلم',
+        'recipient_phone': '01111111111',
+        'formatted_address': 'شارع التحرير، مبنى 7',
+        'additional_instructions': 'اتصل عند الوصول',
+      },
+      'items': [
+        {
+          'display_name': 'منتج - كبير',
+          'quantity': 2,
+          'unit_price': '250.00',
+          'product': {
+            'description': 'وصف المنتج',
+            'image': 'https://example.com/product.png',
+          },
+          'variant': {'sku': 'SKU-1'},
+        },
+      ],
+      'offers': [
+        {
+          'offer': {
+            'title': 'عرض خاص',
+            'description': 'خصم اليوم',
+            'discount': '10.00',
+          },
+        },
+      ],
+    });
+
+    expect(order.customerName, 'المستلم');
+    expect(order.phone, '01111111111');
+    expect(order.address, contains('شارع التحرير'));
+    expect(order.addressInstructions, 'اتصل عند الوصول');
+    expect(order.orderImageUrl, endsWith('/api/v1/orders/2/image/'));
+    expect(order.paymentMethod, 'cash_on_delivery');
+    expect(order.subtotal, 500);
+    expect(order.discount, 50);
+    expect(order.multiMarketFee, 10);
+    expect(order.etaMinMinutes, 25);
+    expect(order.shippingCompanyName, 'شركة شحن');
+    expect(order.items.single.sku, 'SKU-1');
+    expect(order.items.single.imageUrl, 'https://example.com/product.png');
+    expect(order.offers.single.title, 'عرض خاص');
+  });
+
   test('parses authoritative courier statuses and safe legacy statuses', () {
     expect(courierOrderStatusFromRaw('assigned'), CourierOrderStatus.assigned);
     expect(CourierOrderStatus.assigned.label, 'مطلوب الاستلام');
@@ -399,6 +461,36 @@ void _registerDeliveryTests() {
     );
 
     expect(tester.takeException(), isNull);
+    expect(find.byType(Image), findsOneWidget);
+  });
+
+  testWidgets('authenticated image loads private bytes through its loader', (
+    WidgetTester tester,
+  ) async {
+    String? requestedUrl;
+    final imageBytes = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AuthenticatedNetworkImage(
+            url: 'https://api.example.com/orders/1/image/',
+            placeholderAsset: AppAssets.defaultProduct,
+            loader: (url) async {
+              requestedUrl = url;
+              return imageBytes;
+            },
+            width: 120,
+            height: 80,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(requestedUrl, 'https://api.example.com/orders/1/image/');
     expect(find.byType(Image), findsOneWidget);
   });
 }

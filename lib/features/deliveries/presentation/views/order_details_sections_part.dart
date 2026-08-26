@@ -438,13 +438,54 @@ class _ProductRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: NetworkImageOrPlaceholder(
+              url: item.imageUrl,
+              placeholderAsset: AppAssets.defaultProduct,
+              width: 54,
+              height: 54,
+              fit: BoxFit.cover,
+              semanticLabel: item.name,
+            ),
+          ),
+          const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              item.name,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w900),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w900),
+                ),
+                if (item.sku != null) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    'SKU: ${item.sku}',
+                    textDirection: TextDirection.ltr,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppColors.lightTextSecondary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+                if (item.description != null) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    item.description!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppColors.lightTextSecondary,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
           const SizedBox(width: 10),
@@ -476,6 +517,103 @@ class _ProductRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _OfferRow extends StatelessWidget {
+  const _OfferRow({required this.offer});
+
+  final CourierOrderOffer offer;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: NetworkImageOrPlaceholder(
+              url: offer.imageUrl,
+              placeholderAsset: AppAssets.defaultProduct,
+              width: 54,
+              height: 54,
+              fit: BoxFit.cover,
+              semanticLabel: offer.title,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  offer.title,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w900),
+                ),
+                if (offer.description != null) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    offer.description!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppColors.lightTextSecondary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (offer.discount != null && offer.discount! > 0)
+            Text(
+              '${offer.discount!.toStringAsFixed(0)}%',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OrderRequestImageCard extends StatelessWidget {
+  const _OrderRequestImageCard({required this.order, required this.mutedColor});
+
+  final CourierOrder order;
+  final Color mutedColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      title: 'صورة مرفقة بالطلب',
+      children: [
+        Text(
+          'الصورة التي أرسلها العميل مع تفاصيل الطلب.',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: mutedColor,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 10),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: AuthenticatedNetworkImage(
+            url: order.orderImageUrl,
+            placeholderAsset: AppAssets.defaultProduct,
+            width: double.infinity,
+            height: 210,
+            fit: BoxFit.contain,
+            semanticLabel: 'صورة الطلب المرسلة من العميل',
+          ),
+        ),
+      ],
     );
   }
 }
@@ -518,7 +656,7 @@ class _DeliveryProofCard extends StatelessWidget {
         else if (proofUrl != null)
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: NetworkImageOrPlaceholder(
+            child: AuthenticatedNetworkImage(
               url: proofUrl,
               placeholderAsset: AppAssets.defaultProduct,
               fit: BoxFit.cover,

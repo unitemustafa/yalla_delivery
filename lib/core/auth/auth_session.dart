@@ -294,6 +294,21 @@ class AuthSession {
     return data;
   }
 
+  Future<Uint8List> getBytes(String path) async {
+    final response = await _sendWithRefresh<http.Response>(
+      send: () => _authorizedGet(path),
+      statusCode: (response) => response.statusCode,
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw _api.responseException(
+        response,
+        _api.decode(response),
+        '\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0648\u0631\u0629.',
+      );
+    }
+    return response.bodyBytes;
+  }
+
   Future<void> logout() async {
     try {
       final tokens = _tokens;

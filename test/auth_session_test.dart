@@ -632,6 +632,53 @@ void main() {
       expect(store.tokens, isNull);
     },
   );
+
+  test(
+    'private image bytes use the live Bearer token and absolute URL',
+    () async {
+      final store = InMemoryAuthTokenStore();
+      Uri? imageUrl;
+      String? imageAuthorization;
+      final session = AuthSession.forTesting(
+        tokenStore: store,
+        now: () => base,
+        baseUrl: 'https://api.example.com/api/v1',
+        client: MockClient((request) async {
+          if (request.url.path.endsWith('/login/representative/')) {
+            return _response(_payload(base, remembered: false));
+          }
+          imageUrl = request.url;
+          imageAuthorization = request.headers['authorization'];
+          return http.Response.bytes(
+            const [1, 2, 3, 4],
+            200,
+            headers: const {'content-type': 'image/png'},
+          );
+        }),
+      );
+      addTearDown(session.disposeForTesting);
+      await session.login(
+        identifier: 'captain@example.com',
+        password: 'Secret123!',
+        remember: false,
+      );
+
+      final bytes = await session.getBytes(
+        'https://api.example.com/api/v1/orders/7/image/',
+      );
+
+      expect(bytes, [1, 2, 3, 4]);
+      expect(
+        imageUrl.toString(),
+        'https://api.example.com/api/v1/orders/7/image/',
+      );
+      expect(imageAuthorization, 'Bearer access-old');
+      await expectLater(
+        session.getBytes('https://untrusted.example/orders/7/image/'),
+        throwsArgumentError,
+      );
+    },
+  );
 }
 
 Map<String, dynamic> _payload(

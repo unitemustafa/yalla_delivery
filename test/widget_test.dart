@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:yalla_home/core/theme/app_theme_controller.dart';
 import 'package:yalla_home/core/constants/app_assets.dart';
 import 'package:yalla_home/core/presentation/widgets/network_image_or_placeholder.dart';
+import 'package:yalla_home/core/presentation/widgets/authenticated_network_image.dart';
 import 'package:yalla_home/features/deliveries/data/courier_notifications_api.dart';
 import 'package:yalla_home/features/deliveries/data/courier_orders_api.dart';
 import 'package:yalla_home/features/deliveries/data/courier_profile_api.dart';

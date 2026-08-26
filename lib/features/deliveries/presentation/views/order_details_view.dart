@@ -10,6 +10,7 @@ import '../../../../core/formatters/app_currency.dart';
 import '../../../../core/icons/app_icons.dart';
 import '../../../../core/notifications/courier_push_service.dart';
 import '../../../../core/presentation/widgets/app_action_button.dart';
+import '../../../../core/presentation/widgets/authenticated_network_image.dart';
 import '../../../../core/presentation/widgets/network_image_or_placeholder.dart';
 import '../../../../core/presentation/widgets/page_top_bar.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
@@ -19,6 +20,7 @@ import '../extensions/courier_order_status_presentation.dart';
 import '../widgets/delivery_confirmation_sheet.dart';
 
 part 'order_details_sections_part.dart';
+part 'order_details_summary_part.dart';
 part 'order_contact_options_part.dart';
 
 typedef OrderPickedUpHandler = Future<CourierOrder> Function(String orderId);
@@ -315,8 +317,23 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
                           mutedColor: mutedColor,
                           copyable: true,
                         ),
+                      if (order.addressInstructions != null)
+                        _DetailRow(
+                          icon: AppIcons.info_circle,
+                          label: 'تعليمات العنوان',
+                          value: order.addressInstructions!,
+                          mutedColor: mutedColor,
+                          copyable: true,
+                        ),
                     ],
                   ),
+                  if (order.orderImageUrl != null) ...[
+                    const SizedBox(height: 12),
+                    _OrderRequestImageCard(
+                      order: order,
+                      mutedColor: mutedColor,
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   _SectionCard(
                     title: 'المنتجات',
@@ -336,6 +353,18 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
                               _ProductRow(item: item),
                           ],
                   ),
+                  if (order.offers.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    _SectionCard(
+                      title: 'العروض المضافة',
+                      children: [
+                        for (final offer in order.offers)
+                          _OfferRow(offer: offer),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  _OrderSummaryCard(order: order, mutedColor: mutedColor),
                   if (order.isDelivered) ...[
                     const SizedBox(height: 12),
                     _DeliveryProofCard(order: order, mutedColor: mutedColor),

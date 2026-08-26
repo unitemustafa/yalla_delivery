@@ -18,8 +18,17 @@ class AuthApiClient {
   final String Function() _baseUrl;
   final Duration _requestTimeout;
 
-  Uri uri(String path) =>
-      Uri.parse('${_baseUrl()}/${path.replaceFirst(RegExp(r'^/+'), '')}');
+  Uri uri(String path) {
+    final parsed = Uri.tryParse(path.trim());
+    if (parsed != null && parsed.hasScheme) {
+      final base = Uri.parse(_baseUrl());
+      if (parsed.origin != base.origin) {
+        throw ArgumentError.value(path, 'path', 'Must use the API origin.');
+      }
+      return parsed;
+    }
+    return Uri.parse('${_baseUrl()}/${path.replaceFirst(RegExp(r'^/+'), '')}');
+  }
 
   String? absoluteUrl(Object? value) {
     final text = value?.toString().trim() ?? '';
