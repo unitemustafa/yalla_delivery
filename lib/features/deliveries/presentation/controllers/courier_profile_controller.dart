@@ -62,7 +62,7 @@ class CourierProfileController extends ChangeNotifier {
   String _arabicError(Object error) {
     final message = error.toString().replaceFirst('Exception: ', '').trim();
     if (message.isEmpty) {
-      return 'تعذر تحميل بيانات حساب المندوب. حاول مرة أخرى.';
+      return 'تعذر تحميل بيانات حساب الطيار. حاول مرة أخرى.';
     }
     return message;
   }

@@ -31,7 +31,7 @@ class _ProfileError extends StatelessWidget {
             const Icon(AppIcons.warning_2, color: AppColors.error, size: 34),
             const SizedBox(height: 10),
             Text(
-              'تعذر تحميل بيانات حساب المندوب',
+              'تعذر تحميل بيانات حساب الطيار',
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
@@ -109,7 +109,7 @@ class _IncompleteProfileNotice extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'بيانات تشغيل المندوب غير مكتملة.',
+              'بيانات تشغيل الطيار غير مكتملة.',
               style: Theme.of(
                 context,
               ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w800),
@@ -155,7 +155,7 @@ class _CourierHero extends StatelessWidget {
                   children: [
                     Flexible(
                       child: Text(
-                        account?.displayName ?? 'مندوب Yalla Delivery',
+                        account?.displayName ?? 'طيار Yalla Delivery',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           color: Colors.white,
                           fontSize: 20,
@@ -216,7 +216,7 @@ class _CourierAvatar extends StatelessWidget {
           imageKey: const Key('courier_profile_avatar_network'),
           placeholderKey: const Key('courier_profile_avatar_fallback'),
           fit: BoxFit.cover,
-          semanticLabel: 'صورة المندوب',
+          semanticLabel: 'صورة الطيار',
         ),
       ),
     );

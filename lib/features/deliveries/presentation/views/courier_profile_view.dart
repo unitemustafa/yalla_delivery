@@ -141,7 +141,7 @@ class _ProfileBody extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const PageTopBar(
-          title: 'حساب المندوب',
+          title: 'حساب الطيار',
           subtitle: 'بيانات التشغيل والحساب',
         ),
         const SizedBox(height: 18),
@@ -188,7 +188,7 @@ class _ProfileBody extends StatelessWidget {
           ],
           const SizedBox(height: 22),
           _SettingsSection(
-            title: 'بيانات تشغيل المندوب',
+            title: 'بيانات تشغيل الطيار',
             isDark: isDark,
             children: [
               _SettingsInfoTile(

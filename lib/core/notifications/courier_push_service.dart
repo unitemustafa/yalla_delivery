@@ -48,10 +48,10 @@ class CourierPushEvent {
       'courier_order_unassigned' => 'تم سحب الطلب #$number من قائمة مهامك.',
       'courier_order_cancelled' => 'تم إلغاء الطلب #$number.',
       'courier_account_restored' =>
-        'تم استعادة حساب المندوب بواسطة فريق دعم يلا ماركت.',
-      'courier_profile_updated' => 'تم تحديث بيانات المندوب.',
+        'تم استعادة حساب الطيار بواسطة فريق دعم يلا ماركت.',
+      'courier_profile_updated' => 'تم تحديث بيانات الطيار.',
       'courier_availability_changed' => 'تم تحديث حالة استقبال الطلبات.',
-      _ => 'تم تحديث بيانات حساب المندوب.',
+      _ => 'تم تحديث بيانات حساب الطيار.',
     };
   }
 }
@@ -214,7 +214,7 @@ class CourierPushService {
     await android?.createNotificationChannel(
       const AndroidNotificationChannel(
         courierUpdatesChannelId,
-        'تحديثات المندوب',
+        'تحديثات الطيار',
         importance: Importance.defaultImportance,
         playSound: true,
         enableVibration: true,
@@ -285,7 +285,7 @@ class CourierPushService {
         ? 'طلبات التوصيل'
         : channel == accountUpdatesChannelId
         ? 'تحديثات الحساب'
-        : 'تحديثات المندوب';
+        : 'تحديثات الطيار';
     final pushEvent = CourierPushEvent(data, opened: false);
     final title = pushEvent.title;
     final body = pushEvent.body;

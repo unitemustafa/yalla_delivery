@@ -126,7 +126,7 @@ void _registerProfileTests() {
       find.byKey(const Key('courier_profile_avatar_fallback')),
       findsOneWidget,
     );
-    expect(find.text('بيانات تشغيل المندوب غير مكتملة.'), findsOneWidget);
+    expect(find.text('بيانات تشغيل الطيار غير مكتملة.'), findsOneWidget);
     expect(find.text('مدينة الخدمة غير محددة'), findsOneWidget);
     expect(find.text('الحالة غير معروفة'), findsOneWidget);
     expect(find.text('غير محدد'), findsWidgets);
@@ -175,7 +175,7 @@ void _registerProfileTests() {
     await tester.pump();
 
     expect(find.byKey(const Key('courier_profile_error')), findsOneWidget);
-    expect(find.text('تعذر تحميل بيانات حساب المندوب'), findsOneWidget);
+    expect(find.text('تعذر تحميل بيانات حساب الطيار'), findsOneWidget);
 
     api.accounts = [_courierAccount(serviceCityName: 'الإسكندرية')];
     await tester.tap(find.byKey(const Key('courier_profile_retry')));

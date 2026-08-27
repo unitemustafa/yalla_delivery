@@ -14,12 +14,12 @@ class CourierProfileApi {
 
   static CourierAccount parseUserResponse(dynamic data) {
     if (data is! Map<String, dynamic>) {
-      throw const ApiException('تعذر قراءة بيانات حساب المندوب.');
+      throw const ApiException('تعذر قراءة بيانات حساب الطيار.');
     }
 
     final account = CourierAccount.fromJson(data);
     if (account.role != 'representative') {
-      throw const ApiException('هذا الحساب ليس حساب مندوب.');
+      throw const ApiException('هذا الحساب ليس حساب طيار.');
     }
     return account;
   }
