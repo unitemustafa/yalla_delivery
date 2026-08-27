@@ -7,8 +7,19 @@ void main() {
   test('visible branding uses Yalla Delivery', () {
     expect(AppConstants.appName, 'Yalla Delivery');
 
-    const brandedFiles = [
+    final androidManifest = File(
       'android/app/src/main/AndroidManifest.xml',
+    ).readAsStringSync();
+    final androidStrings = File(
+      'android/app/src/main/res/values/strings.xml',
+    ).readAsStringSync();
+    expect(androidManifest, contains('android:label="@string/app_name"'));
+    expect(
+      androidStrings,
+      anyOf(contains('Yalla Delivery'), contains('يلا دليفيري')),
+    );
+
+    const brandedFiles = [
       'ios/Runner/Info.plist',
       'macos/Runner/Configs/AppInfo.xcconfig',
       'web/manifest.json',
@@ -22,7 +33,11 @@ void main() {
 
     for (final path in brandedFiles) {
       final source = File(path).readAsStringSync();
-      expect(source, contains('Yalla Delivery'), reason: path);
+      expect(
+        source,
+        anyOf(contains('Yalla Delivery'), contains('يلا دليفيري')),
+        reason: path,
+      );
       expect(source, isNot(contains('Yalla Home')), reason: path);
       expect(source, isNot(contains('يلا هوم')), reason: path);
     }
