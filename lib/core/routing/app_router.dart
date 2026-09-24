@@ -9,18 +9,24 @@ class AppRouter {
   AppRouter._();
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
-    return switch (settings.name) {
-      AppRoutes.splash => _buildRoute(const SplashView(), settings),
-      AppRoutes.login => _buildRoute(const LoginView(), settings),
-      AppRoutes.dashboard => _buildRoute(const CourierShellView(), settings),
-      _ => _buildRoute(const LoginView(), settings),
+    final page = switch (settings.name) {
+      AppRoutes.splash => const SplashView(),
+      AppRoutes.login => const LoginView(),
+      AppRoutes.dashboard => const CourierShellView(),
+      _ => const LoginView(),
     };
-  }
 
-  static MaterialPageRoute<dynamic> _buildRoute(
-    Widget page,
-    RouteSettings settings,
-  ) {
-    return MaterialPageRoute(builder: (_) => page, settings: settings);
+    return PageRouteBuilder<dynamic>(
+      settings: settings,
+      pageBuilder: (_, _, _) => page,
+      transitionDuration: const Duration(milliseconds: 500),
+      reverseTransitionDuration: const Duration(milliseconds: 350),
+      transitionsBuilder: (_, animation, _, child) {
+        return FadeTransition(
+          opacity: CurvedAnimation(parent: animation, curve: Curves.easeInOut),
+          child: child,
+        );
+      },
+    );
   }
 }

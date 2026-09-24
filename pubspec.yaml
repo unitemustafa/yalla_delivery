@@ -2,7 +2,7 @@ name: yalla_home
 description: "Yalla Delivery courier app."
 publish_to: 'none'
 
-version: 1.0.8+2011
+version: 1.0.8+2012
 
 environment:
   sdk: ^3.11.4
@@ -28,6 +28,7 @@ dependencies:
   firebase_messaging: 16.4.1
   flutter_local_notifications: ^22.0.1
   image_picker: ^1.2.2
+  lottie: ^3.3.3
 
 dev_dependencies:
   flutter_test:
@@ -45,6 +46,8 @@ flutter:
     - assets/images/placeholders/default_courier.webp
     - assets/images/placeholders/default_product.webp
     - assets/images/placeholders/default_user_avatar.webp
+    - assets/images/auth_courier_header.webp
+    - assets/lottie/Delivery.json
 
   fonts:
     - family: Cairo

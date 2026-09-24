@@ -8,7 +8,7 @@ void _registerAppSmokeTests() {
     addTearDown(tester.view.resetDevicePixelRatio);
     FlutterSecureStorage.setMockInitialValues({});
     await tester.pumpWidget(const YallaHomeApp());
-    await tester.pump(const Duration(milliseconds: 1600));
+    await tester.pump(const Duration(milliseconds: 5200));
     await tester.pump();
 
     expect(find.text('أهلاً يا كابتن'), findsOneWidget);

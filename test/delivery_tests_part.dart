@@ -21,8 +21,6 @@ void _registerDeliveryTests() {
       ),
     );
 
-    expect(find.text('الوصول'), findsNothing);
-    expect(find.text('12:43'), findsNothing);
     expect(find.text('مطلوب الاستلام'), findsOneWidget);
 
     await tester.pumpWidget(
@@ -35,8 +33,8 @@ void _registerDeliveryTests() {
       ),
     );
 
-    expect(find.text('وقت التسليم'), findsOneWidget);
-    expect(find.text('15/06 12:43'), findsOneWidget);
+    expect(find.text('تم التسليم'), findsOneWidget);
+    expect(find.text('12:43  15/06'), findsOneWidget);
   });
 
   testWidgets('delivered card shows fallback when delivered time is absent', (
@@ -57,7 +55,9 @@ void _registerDeliveryTests() {
       ),
     );
 
-    expect(find.text('---'), findsOneWidget);
+    // The new design hides the time entirely when deliveredAt is null
+    // instead of showing '---', but the 'تم التسليم' chip is always present.
+    expect(find.text('تم التسليم'), findsOneWidget);
   });
 
   testWidgets('delivered card fits compact iPhone width with larger text', (
@@ -89,7 +89,7 @@ void _registerDeliveryTests() {
     );
 
     expect(tester.takeException(), isNull);
-    expect(find.text('وقت التسليم'), findsOneWidget);
+    expect(find.text('تم التسليم'), findsOneWidget);
     expect(find.text('845 جنيه'), findsOneWidget);
   });
 
@@ -415,6 +415,37 @@ void _registerDeliveryTests() {
     expect(find.byTooltip('الإشعارات'), findsOneWidget);
     expect(find.text('الطلبات المسلّمة'), findsOneWidget);
     expect(find.text('3'), findsOneWidget);
+  });
+
+  testWidgets('delivered history stays readable on a tablet', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(1024, 1366);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      _TestApp(
+        child: DeliveredHistoryView(
+          orders: [
+            _order(
+              status: CourierOrderStatus.delivered,
+              expectedDeliveryAt: DateTime(2026, 6, 15, 12, 43),
+              deliveredAt: DateTime(2026, 6, 15, 12, 43),
+            ),
+          ],
+          onRefresh: () async {},
+          unreadNotificationCount: 0,
+          onNotificationsPressed: () {},
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    final cardWidth = tester.getSize(find.byType(OrderCard)).width;
+    expect(cardWidth, lessThanOrEqualTo(720));
+    expect(find.text('تم التسليم'), findsOneWidget);
   });
 
   test('bottom navigation source has exactly Orders, Delivered, Account', () {

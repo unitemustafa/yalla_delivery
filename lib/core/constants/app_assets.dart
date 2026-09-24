@@ -14,4 +14,7 @@ class AppAssets {
       '$_placeholdersPath/default_courier.webp';
 
   static const String logo = '$_logosPath/yallahome_logo.webp';
+  static const String authCourierHeader =
+      '$_imagesPath/auth_courier_header.webp';
+  static const String deliveryLottie = 'assets/lottie/Delivery.json';
 }

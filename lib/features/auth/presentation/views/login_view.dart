@@ -124,96 +124,221 @@ class _LoginViewState extends State<LoginView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final surfaceColor = isDark ? const Color(0xFF1A1B20) : Colors.white;
 
-    return Scaffold(
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: isDark
-                ? const [
-                    Color(0xFF111214),
-                    AppColors.darkBackground,
-                    Color(0xFF171717),
-                  ]
-                : const [
-                    Color(0xFFF3F6FF),
-                    AppColors.lightBackground,
-                    Color(0xFFFAFBFF),
-                  ],
-            stops: const [0, 0.42, 1],
-          ),
-        ),
-        child: SafeArea(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+        statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+        systemNavigationBarColor: surfaceColor,
+        systemNavigationBarIconBrightness: isDark
+            ? Brightness.light
+            : Brightness.dark,
+      ),
+      child: Scaffold(
+        backgroundColor: surfaceColor,
+        body: SafeArea(
+          top: false,
           child: LayoutBuilder(
             builder: (context, constraints) {
               final horizontalPadding = constraints.maxWidth >= 500
                   ? 32.0
                   : 20.0;
+              const bannerHeight = 250.0;
+              const overlap = 22.0;
+              final sheetMinHeight =
+                  (constraints.maxHeight - (bannerHeight - overlap)).clamp(
+                    300.0,
+                    double.infinity,
+                  );
 
               return SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(
-                  horizontalPadding,
-                  54,
-                  horizontalPadding,
-                  24,
-                ),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight - 78,
-                  ),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 430),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _LoginHeader(isDark: isDark),
-                            const SizedBox(height: 30),
-                            _LoginTextField(
-                              controller: _identifierController,
-                              keyboardType: TextInputType.text,
-                              validator: _validateIdentifier,
-                              textInputAction: TextInputAction.next,
-                              labelText: 'موبايل / إيميل / اسم مستخدم',
-                              prefixIcon: AppIcons.direct_right,
+                child: Column(
+                  children: [
+                    // 1. Top Banner area with 3D courier illustration
+                    SizedBox(
+                      height: bannerHeight,
+                      width: double.infinity,
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: Image.asset(
+                              AppAssets.authCourierHeader,
+                              fit: BoxFit.cover,
+                              alignment: Alignment.topCenter,
+                              cacheHeight: 480,
                             ),
-                            _LoginTextField(
-                              controller: _passwordController,
-                              validator: _validatePassword,
-                              obscureText: _obscurePassword,
-                              textInputAction: TextInputAction.done,
-                              onFieldSubmitted: (_) => _signIn(),
-                              labelText: 'كلمة المرور',
-                              prefixIcon: AppIcons.password_check,
-                              suffixIcon: _obscurePassword
-                                  ? AppIcons.eye_slash
-                                  : AppIcons.eye,
-                              suffixTooltip: _obscurePassword
-                                  ? 'إظهار كلمة المرور'
-                                  : 'إخفاء كلمة المرور',
-                              onSuffixIconPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
+                          ),
+                          // Soft ambient overlay for dark mode & contrast
+                          Positioned.fill(
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.black.withValues(
+                                      alpha: isDark ? 0.35 : 0.05,
+                                    ),
+                                    Colors.transparent,
+                                    Colors.black.withValues(
+                                      alpha: isDark ? 0.40 : 0.08,
+                                    ),
+                                  ],
+                                  stops: const [0.0, 0.45, 1.0],
+                                ),
+                              ),
                             ),
-                            _buildRememberAndSupportRow(theme, isDark),
-                            const SizedBox(height: 30),
-                            AppActionButton(
-                              label: 'تسجيل الدخول',
-                              isLoading: _isLoading,
-                              onPressed: _isLoading ? null : _signIn,
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
+
+                    // 2. Curved bottom sheet with centered floating logo on the curve
+                    Transform.translate(
+                      offset: const Offset(0, -overlap),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        alignment: Alignment.topCenter,
+                        children: [
+                          // Curved form container
+                          Container(
+                            width: double.infinity,
+                            constraints: BoxConstraints(
+                              minHeight: sheetMinHeight,
+                            ),
+                            decoration: BoxDecoration(
+                              color: surfaceColor,
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(22),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(
+                                    alpha: isDark ? 0.35 : 0.07,
+                                  ),
+                                  blurRadius: 18,
+                                  offset: const Offset(0, -4),
+                                ),
+                              ],
+                            ),
+                            padding: EdgeInsets.fromLTRB(
+                              horizontalPadding,
+                              48, // Room directly below floating logo badge
+                              horizontalPadding,
+                              24,
+                            ),
+                            child: Align(
+                              alignment: Alignment.topCenter,
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 430,
+                                ),
+                                child: Form(
+                                  key: _formKey,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      Text(
+                                        'أهلاً يا كابتن',
+                                        textAlign: TextAlign.start,
+                                        style: theme.textTheme.headlineLarge
+                                            ?.copyWith(
+                                              fontSize: 20,
+                                              height: 1.15,
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 20),
+                                      _LoginTextField(
+                                        controller: _identifierController,
+                                        keyboardType: TextInputType.text,
+                                        validator: _validateIdentifier,
+                                        textInputAction: TextInputAction.next,
+                                        labelText:
+                                            'موبايل / إيميل / اسم مستخدم',
+                                        prefixIcon: AppIcons.direct_right,
+                                      ),
+                                      _LoginTextField(
+                                        controller: _passwordController,
+                                        validator: _validatePassword,
+                                        obscureText: _obscurePassword,
+                                        textInputAction: TextInputAction.done,
+                                        onFieldSubmitted: (_) => _signIn(),
+                                        labelText: 'كلمة المرور',
+                                        prefixIcon: AppIcons.password_check,
+                                        suffixIcon: _obscurePassword
+                                            ? AppIcons.eye_slash
+                                            : AppIcons.eye,
+                                        suffixTooltip: _obscurePassword
+                                            ? 'إظهار كلمة المرور'
+                                            : 'إخفاء كلمة المرور',
+                                        onSuffixIconPressed: () {
+                                          setState(() {
+                                            _obscurePassword =
+                                                !_obscurePassword;
+                                          });
+                                        },
+                                      ),
+                                      _buildRememberAndSupportRow(
+                                        theme,
+                                        isDark,
+                                      ),
+                                      const SizedBox(height: 26),
+                                      AppActionButton(
+                                        label: 'تسجيل الدخول',
+                                        isLoading: _isLoading,
+                                        onPressed: _isLoading ? null : _signIn,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          // Centered floating logo badge positioned on the curve
+                          Positioned(
+                            top: -37,
+                            child: Container(
+                              width: 74,
+                              height: 74,
+                              padding: const EdgeInsets.all(5),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0D3B75),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: surfaceColor,
+                                  width: 3.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFF0D3B75,
+                                    ).withValues(alpha: 0.35),
+                                    blurRadius: 14,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(15),
+                                child: Image.asset(
+                                  AppAssets.logo,
+                                  fit: BoxFit.cover,
+                                  cacheWidth: 160,
+                                  cacheHeight: 160,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               );
             },
@@ -281,7 +406,7 @@ class _LoginViewState extends State<LoginView> {
           child: const Text(
             'الدعم الفني',
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
           ),
         ),
       ],
@@ -420,77 +545,6 @@ class _LoginTextField extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _LoginHeader extends StatelessWidget {
-  const _LoginHeader({required this.isDark});
-
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final logoSurfaceColor = isDark ? Colors.black : Colors.white;
-    final logoBorderColor = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : AppColors.primary.withValues(alpha: 0.14);
-    final shadowColor = isDark
-        ? Colors.black.withValues(alpha: 0.26)
-        : AppColors.primary.withValues(alpha: 0.14);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 96,
-          height: 96,
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: logoSurfaceColor,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: logoBorderColor),
-            boxShadow: [
-              BoxShadow(
-                color: shadowColor,
-                blurRadius: 30,
-                offset: const Offset(0, 18),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: Image.asset(
-              AppAssets.logo,
-              fit: BoxFit.cover,
-              cacheWidth: 192,
-              cacheHeight: 192,
-            ),
-          ),
-        ),
-        const SizedBox(height: 22),
-        Text(
-          'أهلاً يا كابتن',
-          style: theme.textTheme.headlineLarge?.copyWith(
-            fontSize: 31,
-            height: 1.08,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'تابع طلباتك، افتح العنوان بسرعة، وثبّت التسليم بصورة أو ملاحظة.',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.58)
-                : Colors.black.withValues(alpha: 0.56),
-            fontSize: 14.5,
-            height: 1.55,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
     );
   }
 }

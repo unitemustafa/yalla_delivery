@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/icons/app_icons.dart';
 import '../../domain/courier_order.dart';
 
 extension CourierOrderStatusPresentation on CourierOrderStatus {
@@ -27,6 +28,19 @@ extension CourierOrderStatusPresentation on CourierOrderStatus {
       CourierOrderStatus.failedDelivery => AppColors.error,
       CourierOrderStatus.cancelled => AppColors.error,
       CourierOrderStatus.unknown => AppColors.lightTextSecondary,
+    };
+  }
+
+  IconData get icon {
+    return switch (this) {
+      CourierOrderStatus.pending => AppIcons.receipt_text,
+      CourierOrderStatus.confirmed => AppIcons.receipt_text,
+      CourierOrderStatus.assigned => AppIcons.box,
+      CourierOrderStatus.pickedUp => AppIcons.truck_fast,
+      CourierOrderStatus.delivered => AppIcons.tick_circle,
+      CourierOrderStatus.failedDelivery => AppIcons.danger,
+      CourierOrderStatus.cancelled => AppIcons.danger,
+      CourierOrderStatus.unknown => AppIcons.info_circle,
     };
   }
 }

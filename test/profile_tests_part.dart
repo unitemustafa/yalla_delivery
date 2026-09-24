@@ -227,7 +227,7 @@ void _registerProfileTests() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    AppThemeController.instance.setThemeMode(ThemeMode.system);
+    AppThemeController.instance.setThemeMode(ThemeMode.light);
     var activeTapped = false;
     var deliveredTapped = false;
     var loggedOut = false;
@@ -265,6 +265,11 @@ void _registerProfileTests() {
     await tester.pumpAndSettle();
     expect(loggedOut, isTrue);
 
+    AppThemeController.instance.setThemeMode(ThemeMode.light);
+  });
+
+  test('AppThemeController supports the system theme mode', () {
     AppThemeController.instance.setThemeMode(ThemeMode.system);
+    expect(AppThemeController.instance.value, ThemeMode.system);
   });
 }
