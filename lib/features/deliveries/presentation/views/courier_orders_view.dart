@@ -15,6 +15,7 @@ class CourierOrdersView extends StatefulWidget {
     super.key,
     required this.orders,
     required this.onPickedUp,
+    this.onMarketPickedUp,
     required this.onDelivered,
     required this.onRefresh,
     required this.unreadNotificationCount,
@@ -23,6 +24,7 @@ class CourierOrdersView extends StatefulWidget {
 
   final List<CourierOrder> orders;
   final OrderPickedUpHandler onPickedUp;
+  final MarketPickedUpHandler? onMarketPickedUp;
   final OrderDeliveredHandler onDelivered;
   final Future<void> Function() onRefresh;
   final int unreadNotificationCount;
@@ -80,6 +82,7 @@ class _CourierOrdersViewState extends State<CourierOrdersView> {
         builder: (_) => OrderDetailsView(
           order: order,
           onPickedUp: widget.onPickedUp,
+          onMarketPickedUp: widget.onMarketPickedUp,
           onDelivered: widget.onDelivered,
         ),
       ),

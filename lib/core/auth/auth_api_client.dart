@@ -214,14 +214,10 @@ class AuthApiClient {
     if (normalized.contains('invalid email or password')) {
       return _invalidCredentialsMessage;
     }
-    if (normalized.contains('this account belongs to an admin')) {
-      return _localizedCode('admin_account_not_allowed');
-    }
-    if (normalized.contains('this account belongs to a client')) {
-      return _localizedCode('client_account_not_allowed');
-    }
-    if (normalized.contains('this login is only for representative accounts')) {
-      return _localizedCode('representative_account_required');
+    if (normalized.contains('this account belongs to an admin') ||
+        normalized.contains('this account belongs to a client') ||
+        normalized.contains('this login is only for representative accounts')) {
+      return _invalidCredentialsMessage;
     }
     if (normalized.contains('account email has not been verified')) {
       return 'الحساب لم يتم تفعيله بعد.';
@@ -234,11 +230,9 @@ class AuthApiClient {
 
   String _localizedCode(String code) {
     return switch (code.trim()) {
-      'admin_account_not_allowed' =>
-        'هذا حساب مسؤول، سجّل الدخول من لوحة الإدارة.',
-      'client_account_not_allowed' => 'هذا حساب عميل، استخدم تطبيق يلا ماركت.',
-      'representative_account_required' =>
-        'تسجيل الدخول هنا مخصص لحسابات الطيارين فقط.',
+      'admin_account_not_allowed' ||
+      'client_account_not_allowed' ||
+      'representative_account_required' => _invalidCredentialsMessage,
       'account_inactive' => 'تم إيقاف حسابك. تواصل مع الدعم.',
       'session_expired' || 'token_not_valid' => 'انتهت الجلسة.',
       'rate_limited' => 'طلبات كتير في وقت قصير. استنى شوية وحاول تاني.',

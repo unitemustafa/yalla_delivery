@@ -21,6 +21,7 @@ import 'package:yalla_home/features/deliveries/presentation/controllers/courier_
 import 'package:yalla_home/features/deliveries/presentation/controllers/courier_profile_controller.dart';
 import 'package:yalla_home/features/deliveries/presentation/views/courier_notifications_view.dart';
 import 'package:yalla_home/features/deliveries/presentation/views/courier_orders_view.dart';
+import 'package:yalla_home/features/deliveries/presentation/views/order_details_view.dart';
 import 'package:yalla_home/features/deliveries/presentation/views/courier_profile_view.dart';
 import 'package:yalla_home/features/deliveries/presentation/views/delivered_history_view.dart';
 import 'package:yalla_home/features/deliveries/presentation/widgets/courier_notifications_button.dart';

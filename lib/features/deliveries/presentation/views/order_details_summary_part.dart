@@ -24,15 +24,6 @@ class _OrderSummaryCard extends StatelessWidget {
             value: order.shippingCompanyName!,
             mutedColor: mutedColor,
           ),
-        if (order.fulfillmentType != null)
-          _DetailRow(
-            icon: AppIcons.routing,
-            label: 'مسار التنفيذ',
-            value: order.fulfillmentType == 'direct'
-                ? 'توصيل مباشر'
-                : 'شحن خارجي',
-            mutedColor: mutedColor,
-          ),
         if (order.deliveryType != null)
           _DetailRow(
             icon: AppIcons.location,

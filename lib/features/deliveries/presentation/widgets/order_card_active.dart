@@ -80,29 +80,6 @@ class _ActiveOrderCard extends StatelessWidget {
                         _ActiveHeader(order: order, isDark: isDark),
                         const SizedBox(height: 10),
                         _CustomerRow(order: order, mutedColor: mutedColor),
-                        const SizedBox(height: 5),
-                        Row(
-                          children: [
-                            Icon(
-                              AppIcons.location,
-                              size: 14,
-                              color: mutedColor,
-                            ),
-                            const SizedBox(width: 5),
-                            Expanded(
-                              child: Text(
-                                order.address,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: mutedColor,
-                                  fontWeight: FontWeight.w700,
-                                  height: 1.3,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
                         if (notes != null && notes.isNotEmpty) ...[
                           const SizedBox(height: 6),
                           _CustomerNotesRow(notes: notes, isDark: isDark),

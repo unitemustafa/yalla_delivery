@@ -31,31 +31,38 @@ class _LifecycleActions extends StatelessWidget {
   const _LifecycleActions({
     required this.order,
     required this.submittingAction,
+    required this.isPickingUpMarket,
     required this.onPickupPressed,
     required this.onDeliveryPressed,
   });
 
   final CourierOrder order;
   final _SubmittingOrderAction? submittingAction;
+  final bool isPickingUpMarket;
   final VoidCallback onPickupPressed;
   final VoidCallback onDeliveryPressed;
 
   @override
   Widget build(BuildContext context) {
-    final isUpdating = submittingAction != null;
+    final isUpdating = submittingAction != null || isPickingUpMarket;
     final pickupCompleted =
         order.status == CourierOrderStatus.pickedUp || order.isDelivered;
 
     return Column(
       children: [
         AppActionButton(
-          label: 'تم الاستلام',
+          label: order.hasPerMarketPickup && !order.canCompletePickup
+              ? 'استلم منتجات كل المحلات أولًا'
+              : order.hasPerMarketPickup
+              ? 'تأكيد استلام الطلب'
+              : 'تم الاستلام',
           icon: pickupCompleted ? AppIcons.tick_circle : AppIcons.box,
           variant: pickupCompleted
               ? AppActionButtonVariant.outlined
               : AppActionButtonVariant.filled,
           isLoading: submittingAction == _SubmittingOrderAction.pickup,
-          onPressed: !isUpdating && order.canMarkPickedUp
+          onPressed:
+              !isUpdating && order.canMarkPickedUp && order.canCompletePickup
               ? onPickupPressed
               : null,
         ),
@@ -428,6 +435,254 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
+class _ExpandableAddressRow extends StatefulWidget {
+  const _ExpandableAddressRow({required this.address});
+
+  final String address;
+
+  @override
+  State<_ExpandableAddressRow> createState() => _ExpandableAddressRowState();
+}
+
+class _ExpandableAddressRowState extends State<_ExpandableAddressRow> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final mutedColor = isDark
+        ? Colors.white.withValues(alpha: 0.62)
+        : Colors.black.withValues(alpha: 0.58);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: AppColors.primary.withValues(alpha: isDark ? 0.10 : 0.045),
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: () => setState(() => _expanded = !_expanded),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsetsDirectional.fromSTEB(10, 8, 6, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(AppIcons.location, size: 18, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'العنوان',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: mutedColor,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () async {
+                        await Clipboard.setData(
+                          ClipboardData(text: widget.address),
+                        );
+                        if (!context.mounted) return;
+                        CustomSnackBar.showSuccess(
+                          context: context,
+                          title: 'تم نسخ العنوان',
+                        );
+                      },
+                      icon: const Icon(AppIcons.copy, size: 17),
+                      tooltip: 'نسخ العنوان',
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    Icon(
+                      _expanded
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
+                      size: 20,
+                      color: mutedColor,
+                    ),
+                  ],
+                ),
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 180),
+                  alignment: AlignmentDirectional.topStart,
+                  child: Text(
+                    widget.address,
+                    maxLines: _expanded ? null : 1,
+                    overflow: _expanded ? null : TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProductsByMarket extends StatelessWidget {
+  const _ProductsByMarket({
+    required this.order,
+    required this.mutedColor,
+    required this.pickingUpSectionId,
+    required this.isUpdatingOrder,
+    required this.onMarketPickupPressed,
+  });
+
+  final CourierOrder order;
+  final Color mutedColor;
+  final int? pickingUpSectionId;
+  final bool isUpdatingOrder;
+  final ValueChanged<int> onMarketPickupPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final groups = order.productGroups;
+    final total = order.totalMarketCount;
+    final pickedUp = order.pickedUpMarketCount;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return _SectionCard(
+      title: 'المنتجات',
+      children: [
+        if (total > 1) ...[
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'تم استلام منتجات $pickedUp من $total محلات',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: pickedUp == total ? AppColors.success : mutedColor,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Text(
+                '$pickedUp/$total',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: pickedUp == total
+                      ? AppColors.success
+                      : AppColors.primary,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          LinearProgressIndicator(
+            value: pickedUp / total,
+            minHeight: 5,
+            borderRadius: BorderRadius.circular(5),
+            color: pickedUp == total ? AppColors.success : AppColors.primary,
+            backgroundColor: AppColors.primary.withValues(alpha: 0.10),
+          ),
+          const SizedBox(height: 16),
+        ],
+        if (groups.isEmpty)
+          Text(
+            'لا توجد منتجات في هذا الطلب.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: mutedColor,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        for (final group in groups) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            decoration: BoxDecoration(
+              color: group.isPickedUp
+                  ? AppColors.success.withValues(alpha: isDark ? 0.13 : 0.07)
+                  : AppColors.primary.withValues(alpha: isDark ? 0.13 : 0.06),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  group.isPickedUp
+                      ? AppIcons.tick_circle
+                      : AppIcons.shopping_bag,
+                  size: 18,
+                  color: group.isPickedUp
+                      ? AppColors.success
+                      : AppColors.primary,
+                ),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    group.marketName,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                if (group.isPickedUp)
+                  Text(
+                    'تم الاستلام',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppColors.success,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (group.items.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Text(
+                'لا توجد منتجات لهذا المحل.',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: mutedColor),
+              ),
+            ),
+          for (final item in group.items) _ProductRow(item: item),
+          if (order.hasPerMarketPickup &&
+              order.canMarkPickedUp &&
+              !group.isPickedUp &&
+              group.sectionId != null) ...[
+            OutlinedButton.icon(
+              key: ValueKey('market-pickup-${group.sectionId}'),
+              onPressed: !isUpdatingOrder && pickingUpSectionId == null
+                  ? () => onMarketPickupPressed(group.sectionId!)
+                  : null,
+              icon: pickingUpSectionId == group.sectionId
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(AppIcons.tick_circle, size: 17),
+              label: const Text('تأكيد استلام منتجات المحل'),
+            ),
+            const SizedBox(height: 8),
+          ],
+          if (group != groups.last) ...[
+            const SizedBox(height: 4),
+            Divider(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.10)
+                  : Colors.black.withValues(alpha: 0.08),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ],
+      ],
+    );
+  }
+}
+
 class _ProductRow extends StatelessWidget {
   const _ProductRow({required this.item});
 
@@ -461,6 +716,28 @@ class _ProductRow extends StatelessWidget {
                   style: Theme.of(
                     context,
                   ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 3),
+                Row(
+                  children: [
+                    const Icon(
+                      AppIcons.shopping_bag,
+                      size: 13,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'المحل: ${item.marketName ?? 'غير محدد'}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 if (item.sku != null) ...[
                   const SizedBox(height: 3),

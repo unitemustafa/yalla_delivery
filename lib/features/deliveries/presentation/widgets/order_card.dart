@@ -13,7 +13,7 @@ part 'order_card_delivered.dart';
 /// A card that displays a courier order summary.
 ///
 /// When [showDeliveredMeta] is `true`, the card uses a compact, delivered-order
-/// layout that emphasizes delivery time and area rather than the full address.
+/// layout that emphasizes delivery time.
 class OrderCard extends StatelessWidget {
   const OrderCard({
     super.key,

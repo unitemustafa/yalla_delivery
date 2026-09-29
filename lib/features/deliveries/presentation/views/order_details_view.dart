@@ -24,6 +24,9 @@ part 'order_details_summary_part.dart';
 part 'order_contact_options_part.dart';
 
 typedef OrderPickedUpHandler = Future<CourierOrder> Function(String orderId);
+typedef MarketPickedUpHandler =
+    Future<CourierOrder> Function(String orderId, int sectionId);
+typedef OrderLoader = Future<CourierOrder> Function(String orderId);
 typedef OrderDeliveredHandler =
     Future<CourierOrder> Function(
       String orderId,
@@ -36,12 +39,16 @@ class OrderDetailsView extends StatefulWidget {
   const OrderDetailsView({
     super.key,
     required this.order,
+    this.loadOrder,
     this.onPickedUp,
+    this.onMarketPickedUp,
     this.onDelivered,
   });
 
   final CourierOrder order;
+  final OrderLoader? loadOrder;
   final OrderPickedUpHandler? onPickedUp;
+  final MarketPickedUpHandler? onMarketPickedUp;
   final OrderDeliveredHandler? onDelivered;
 
   @override
@@ -54,6 +61,7 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
   bool _loading = true;
   String? _error;
   _SubmittingOrderAction? _submittingAction;
+  int? _pickingUpSectionId;
   StreamSubscription<CourierPushEvent>? _pushSubscription;
 
   @override
@@ -98,7 +106,7 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
       _error = null;
     });
     try {
-      final order = await _api.loadOrder(widget.order.id);
+      final order = await (widget.loadOrder ?? _api.loadOrder)(widget.order.id);
       if (!mounted) return;
       setState(() {
         _order = order;
@@ -177,7 +185,12 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
   }
 
   Future<void> _markPickedUp() async {
-    if (_submittingAction != null || !_order.canMarkPickedUp) return;
+    if (_submittingAction != null ||
+        _pickingUpSectionId != null ||
+        !_order.canMarkPickedUp ||
+        !_order.canCompletePickup) {
+      return;
+    }
 
     setState(() => _submittingAction = _SubmittingOrderAction.pickup);
     try {
@@ -191,6 +204,31 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
       CustomSnackBar.showError(context: context, title: error.toString());
     } finally {
       if (mounted) setState(() => _submittingAction = null);
+    }
+  }
+
+  Future<void> _markMarketPickedUp(int sectionId) async {
+    if (_submittingAction != null ||
+        _pickingUpSectionId != null ||
+        !_order.canMarkPickedUp ||
+        !_order.marketSections.any(
+          (section) => section.id == sectionId && !section.isPickedUp,
+        )) {
+      return;
+    }
+
+    setState(() => _pickingUpSectionId = sectionId);
+    try {
+      final handler = widget.onMarketPickedUp ?? _api.markMarketPickedUp;
+      final updated = await handler(_order.id, sectionId);
+      if (!mounted) return;
+      setState(() => _order = updated);
+      _showMessage('تم تسجيل استلام منتجات المحل.');
+    } catch (error) {
+      if (!mounted) return;
+      CustomSnackBar.showError(context: context, title: error.toString());
+    } finally {
+      if (mounted) setState(() => _pickingUpSectionId = null);
     }
   }
 
@@ -275,13 +313,7 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
                           value: order.addressLabel!,
                           mutedColor: mutedColor,
                         ),
-                      _DetailRow(
-                        icon: AppIcons.location,
-                        label: 'العنوان',
-                        value: order.address,
-                        mutedColor: mutedColor,
-                        copyable: true,
-                      ),
+                      _ExpandableAddressRow(address: order.address),
                       if (order.deliveryAreaName != null)
                         _DetailRow(
                           icon: AppIcons.location,
@@ -335,23 +367,12 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
                     ),
                   ],
                   const SizedBox(height: 12),
-                  _SectionCard(
-                    title: 'المنتجات',
-                    children: order.items.isEmpty
-                        ? [
-                            Text(
-                              'لا توجد منتجات في هذا الطلب.',
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: mutedColor,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                            ),
-                          ]
-                        : [
-                            for (final item in order.items)
-                              _ProductRow(item: item),
-                          ],
+                  _ProductsByMarket(
+                    order: order,
+                    mutedColor: mutedColor,
+                    pickingUpSectionId: _pickingUpSectionId,
+                    isUpdatingOrder: _submittingAction != null,
+                    onMarketPickupPressed: _markMarketPickedUp,
                   ),
                   if (order.offers.isNotEmpty) ...[
                     const SizedBox(height: 12),
@@ -398,6 +419,7 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
                     _LifecycleActions(
                       order: order,
                       submittingAction: _submittingAction,
+                      isPickingUpMarket: _pickingUpSectionId != null,
                       onPickupPressed: _markPickedUp,
                       onDeliveryPressed: _confirmDelivery,
                     ),

@@ -193,6 +193,15 @@ class _CourierShellViewState extends State<CourierShellView>
     return pickedUp;
   }
 
+  Future<CourierOrder> _markMarketPickedUp(
+    String orderId,
+    int sectionId,
+  ) async {
+    final updated = await _api.markMarketPickedUp(orderId, sectionId);
+    if (mounted) setState(() => _replaceOrder(updated));
+    return updated;
+  }
+
   Future<CourierOrder> _markDelivered(
     String orderId,
     DeliveryConfirmationResult result,
@@ -236,6 +245,7 @@ class _CourierShellViewState extends State<CourierShellView>
       CourierOrdersView(
         orders: _activeOrders,
         onPickedUp: _markPickedUp,
+        onMarketPickedUp: _markMarketPickedUp,
         onDelivered: _markDelivered,
         onRefresh: _refreshOrdersAndUnread,
         unreadNotificationCount: _unreadNotificationCount,
@@ -307,6 +317,7 @@ class _CourierShellViewState extends State<CourierShellView>
         builder: (_) => OrderDetailsView(
           order: order,
           onPickedUp: _markPickedUp,
+          onMarketPickedUp: _markMarketPickedUp,
           onDelivered: _markDelivered,
         ),
       ),

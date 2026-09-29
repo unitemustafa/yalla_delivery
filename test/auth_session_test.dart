@@ -37,6 +37,44 @@ void main() {
     expect(store.tokens?.absoluteExpiresAt, base.add(const Duration(hours: 8)));
   });
 
+  test('legacy wrong-role login errors display a generic message', () async {
+    for (final body in [
+      {
+        'code': 'client_account_not_allowed',
+        'detail': 'This account belongs to a client.',
+      },
+      {
+        'code': 'admin_account_not_allowed',
+        'detail': 'This account belongs to an admin.',
+      },
+      {'detail': 'This login is only for representative accounts.'},
+    ]) {
+      final store = InMemoryAuthTokenStore();
+      final session = AuthSession.forTesting(
+        tokenStore: store,
+        now: () => base,
+        client: MockClient((_) async => _response(body, statusCode: 403)),
+      );
+      addTearDown(session.disposeForTesting);
+
+      await expectLater(
+        session.login(
+          identifier: 'wrong@example.com',
+          password: 'Secret123!',
+          remember: false,
+        ),
+        throwsA(
+          isA<ApiException>().having(
+            (error) => error.message,
+            'message',
+            'الإيميل أو كلمة السر غير صحيحين.',
+          ),
+        ),
+      );
+      expect(store.tokens, isNull);
+    }
+  });
+
   test(
     'login exposes 429 code and Retry-After without creating a session',
     () async {

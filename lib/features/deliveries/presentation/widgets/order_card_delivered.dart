@@ -112,28 +112,6 @@ class _DeliveredOrderCard extends StatelessWidget {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              AppIcons.location,
-                              size: 13,
-                              color: mutedColor,
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                order.area,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: mutedColor,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
                         const SizedBox(height: 8),
                         _DeliveredMetaRow(order: order, isDark: isDark),
                       ],

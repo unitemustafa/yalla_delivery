@@ -76,6 +76,9 @@ class CourierOrderItem {
     this.description,
     this.imageUrl,
     this.sku,
+    this.marketName,
+    this.marketId,
+    this.sectionId,
   });
 
   final String name;
@@ -85,8 +88,43 @@ class CourierOrderItem {
   final String? description;
   final String? imageUrl;
   final String? sku;
+  final String? marketName;
+  final int? marketId;
+  final int? sectionId;
 
   double get total => subtotal ?? price * quantity;
+}
+
+class CourierMarketSection {
+  const CourierMarketSection({
+    required this.id,
+    required this.marketId,
+    required this.marketName,
+    required this.pickupStatus,
+  });
+
+  final int id;
+  final int? marketId;
+  final String marketName;
+  final String pickupStatus;
+
+  bool get isPickedUp => pickupStatus == 'picked_up';
+}
+
+class CourierMarketProductGroup {
+  const CourierMarketProductGroup({
+    required this.marketName,
+    required this.marketId,
+    required this.sectionId,
+    required this.isPickedUp,
+    required this.items,
+  });
+
+  final String marketName;
+  final int? marketId;
+  final int? sectionId;
+  final bool isPickedUp;
+  final List<CourierOrderItem> items;
 }
 
 class CourierOrderOffer {
@@ -122,6 +160,7 @@ class CourierOrder {
     required this.marketBranch,
     required this.marketCount,
     required this.marketSummary,
+    this.marketSections = const [],
     this.offers = const [],
     this.addressLabel,
     this.addressInstructions,
@@ -166,6 +205,7 @@ class CourierOrder {
   final String marketBranch;
   final int marketCount;
   final String marketSummary;
+  final List<CourierMarketSection> marketSections;
   final List<CourierOrderOffer> offers;
   final String? addressLabel;
   final String? addressInstructions;
@@ -202,6 +242,7 @@ class CourierOrder {
     final addressDeliveryArea = _map(address?['delivery_area']);
     final itemsJson = _list(json['items']);
     final offersJson = _list(json['offers']);
+    final sectionsJson = _list(json['market_sections']);
     final rawStatus = json['status']?.toString() ?? '';
     final status = courierOrderStatusFromRaw(rawStatus);
     final createdAt = _parseDate(json['created_at']);
@@ -209,7 +250,6 @@ class CourierOrder {
     final deliveredAt =
         _parseOptionalDate(json['delivered_at']) ??
         _deliveredAtFromHistory(json['history']);
-    final items = itemsJson.map(_itemFromJson).toList();
     final label = _clean(address?['name']);
     final details = _clean(address?['details']);
     final formattedAddress = _clean(address?['formatted_address']);
@@ -246,6 +286,14 @@ class CourierOrder {
     final marketBranch = _clean(market?['branch']) ?? '';
     final marketCount = _int(json['market_count']);
     final marketNamesSummary = _clean(json['market_names_summary']);
+    final items = itemsJson
+        .map(
+          (item) => _itemFromJson(
+            item,
+            fallbackMarketName: marketCount <= 1 ? marketName : null,
+          ),
+        )
+        .toList();
     final shippingCompany = _map(json['shipping_company']);
     final recipientName = _clean(address?['recipient_name']);
     final recipientPhone = _clean(address?['recipient_phone']);
@@ -287,6 +335,7 @@ class CourierOrder {
         count: marketCount,
         namesSummary: marketNamesSummary,
       ),
+      marketSections: sectionsJson.map(_marketSectionFromJson).toList(),
       serviceCityName: cityName,
       deliveryAreaName: areaName,
       customerAvatarUrl: AuthSession.instance.absoluteUrl(
@@ -318,6 +367,76 @@ class CourierOrder {
   }
 
   int get itemCount => itemsCount;
+
+  bool get hasPerMarketPickup => marketSections.length > 1;
+
+  bool get canCompletePickup =>
+      !hasPerMarketPickup ||
+      marketSections.every((section) => section.isPickedUp);
+
+  int get totalMarketCount => marketSections.isNotEmpty
+      ? marketSections.length
+      : marketCount > productGroups.length
+      ? marketCount
+      : productGroups.length;
+
+  int get pickedUpMarketCount =>
+      status == CourierOrderStatus.pickedUp || isDelivered
+      ? totalMarketCount
+      : marketSections.where((section) => section.isPickedUp).length;
+
+  List<CourierMarketProductGroup> get productGroups {
+    final remaining = List<CourierOrderItem>.of(items);
+    final groups = <CourierMarketProductGroup>[];
+    final pickupCompleted =
+        status == CourierOrderStatus.pickedUp || isDelivered;
+
+    for (final section in marketSections) {
+      final sectionItems = remaining
+          .where(
+            (item) =>
+                item.sectionId == section.id ||
+                (item.sectionId == null &&
+                    item.marketId != null &&
+                    item.marketId == section.marketId),
+          )
+          .toList();
+      remaining.removeWhere(sectionItems.contains);
+      groups.add(
+        CourierMarketProductGroup(
+          marketName: section.marketName,
+          marketId: section.marketId,
+          sectionId: section.id,
+          isPickedUp: pickupCompleted || section.isPickedUp,
+          items: sectionItems,
+        ),
+      );
+    }
+
+    final unsectioned = <String, List<CourierOrderItem>>{};
+    for (final item in remaining) {
+      final key = item.marketId != null
+          ? 'market:${item.marketId}'
+          : 'name:${item.marketName ?? marketName}';
+      unsectioned.putIfAbsent(key, () => []).add(item);
+    }
+    for (final groupItems in unsectioned.values) {
+      final first = groupItems.first;
+      groups.add(
+        CourierMarketProductGroup(
+          marketName:
+              first.marketName ??
+              (marketCount <= 1 && marketName.isNotEmpty ? marketName : null) ??
+              'المحل غير محدد',
+          marketId: first.marketId,
+          sectionId: null,
+          isPickedUp: pickupCompleted,
+          items: groupItems,
+        ),
+      );
+    }
+    return groups;
+  }
 
   bool get isActiveCourierOrder => status.isActiveCourierOrder;
 
@@ -357,6 +476,7 @@ class CourierOrder {
       marketBranch: marketBranch,
       marketCount: marketCount,
       marketSummary: marketSummary,
+      marketSections: marketSections,
       offers: offers,
       addressLabel: addressLabel,
       addressInstructions: addressInstructions,
@@ -385,7 +505,10 @@ class CourierOrder {
     );
   }
 
-  static CourierOrderItem _itemFromJson(Map<String, dynamic> item) {
+  static CourierOrderItem _itemFromJson(
+    Map<String, dynamic> item, {
+    String? fallbackMarketName,
+  }) {
     final product = _map(item['product']);
     final variant = _map(item['variant']);
     return CourierOrderItem(
@@ -403,6 +526,19 @@ class CourierOrder {
       description: _clean(product?['description']),
       imageUrl: AuthSession.instance.absoluteUrl(product?['image']),
       sku: _clean(variant?['sku']),
+      marketName: _clean(item['market_name']) ?? fallbackMarketName,
+      marketId: _optionalInt(item['market_id']),
+      sectionId: _optionalInt(item['section_id']),
+    );
+  }
+
+  static CourierMarketSection _marketSectionFromJson(Map<String, dynamic> row) {
+    final market = _map(row['market']);
+    return CourierMarketSection(
+      id: _int(row['id']),
+      marketId: _optionalInt(row['market_id']) ?? _optionalInt(market?['id']),
+      marketName: _clean(market?['name']) ?? 'المحل غير محدد',
+      pickupStatus: _clean(row['pickup_status']) ?? 'pending',
     );
   }
 

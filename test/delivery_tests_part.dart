@@ -37,6 +37,212 @@ void _registerDeliveryTests() {
     expect(find.text('12:43  15/06'), findsOneWidget);
   });
 
+  testWidgets('order cards omit address and delivery area', (
+    WidgetTester tester,
+  ) async {
+    for (final status in [
+      CourierOrderStatus.assigned,
+      CourierOrderStatus.delivered,
+    ]) {
+      await tester.pumpWidget(
+        _TestApp(
+          child: OrderCard(
+            order: _order(
+              status: status,
+              expectedDeliveryAt: DateTime(2026, 6, 15),
+            ),
+            showDeliveredMeta: status == CourierOrderStatus.delivered,
+            onTap: () {},
+          ),
+        ),
+      );
+      expect(find.text('شارع التحرير، الدقي'), findsNothing);
+      expect(find.text('الدقي'), findsNothing);
+    }
+  });
+
+  testWidgets(
+    'pickup and delivered details expand the address and show each market',
+    (WidgetTester tester) async {
+      for (final status in [
+        CourierOrderStatus.assigned,
+        CourierOrderStatus.delivered,
+      ]) {
+        final order = CourierOrder.fromJson({
+          'id': 'YM-2',
+          'status': status == CourierOrderStatus.delivered
+              ? 'delivered'
+              : 'assigned',
+          'created_at': '2026-08-26T08:00:00Z',
+          'delivery_address': {
+            'formatted_address': 'شارع التحرير، مبنى 7، الدور الرابع، شقة 12',
+          },
+          'market_count': 2,
+          'market_names_summary': 'محل أول، محل ثان',
+          'fulfillment_type': 'direct',
+          'items': [
+            {
+              'display_name': 'منتج أول',
+              'quantity': 1,
+              'unit_price': '20.00',
+              'market_name': 'محل أول',
+            },
+            {
+              'display_name': 'منتج ثان',
+              'quantity': 1,
+              'unit_price': '30.00',
+              'market_name': 'محل ثان',
+            },
+          ],
+        });
+        await tester.pumpWidget(
+          _TestApp(
+            child: OrderDetailsView(
+              order: order,
+              loadOrder: (_) async => order,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.scrollUntilVisible(find.text('العنوان'), 180);
+        final addressText = find.text(order.address);
+        expect(tester.widget<Text>(addressText).maxLines, 1);
+        await tester.tap(find.text('العنوان'));
+        await tester.pumpAndSettle();
+        expect(tester.widget<Text>(addressText).maxLines, isNull);
+        await tester.tap(find.text('العنوان'));
+        await tester.pumpAndSettle();
+        expect(tester.widget<Text>(addressText).maxLines, 1);
+        await tester.scrollUntilVisible(find.text('المحل: محل ثان'), 180);
+        expect(find.text('المحل: محل أول'), findsOneWidget);
+        expect(find.text('المحل: محل ثان'), findsOneWidget);
+        await tester.scrollUntilVisible(find.text('ملخص الطلب والدفع'), 180);
+        expect(find.text('مسار التنفيذ'), findsNothing);
+        await tester.pumpWidget(const SizedBox());
+      }
+    },
+  );
+
+  testWidgets('market pickup progress is saved per shop before order pickup', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    CourierOrder makeOrder(int pickedUpCount) => CourierOrder.fromJson({
+      'id': 'YM-3',
+      'status': 'assigned',
+      'created_at': '2026-08-26T08:00:00Z',
+      'market_count': 2,
+      'market_sections': [
+        {
+          'id': 11,
+          'market_id': 101,
+          'market': {'name': 'محل أول'},
+          'pickup_status': pickedUpCount >= 1 ? 'picked_up' : 'pending',
+        },
+        {
+          'id': 12,
+          'market_id': 102,
+          'market': {'name': 'محل ثان'},
+          'pickup_status': pickedUpCount >= 2 ? 'picked_up' : 'pending',
+        },
+      ],
+      'items': [
+        {
+          'display_name': 'منتج ثان',
+          'quantity': 1,
+          'unit_price': '30.00',
+          'market_name': 'محل ثان',
+          'market_id': 102,
+          'section_id': 12,
+        },
+        {
+          'display_name': 'منتج أول',
+          'quantity': 1,
+          'unit_price': '20.00',
+          'market_name': 'محل أول',
+          'market_id': 101,
+          'section_id': 11,
+        },
+      ],
+    });
+
+    var pickedUpCount = 0;
+    var completedOrderPickup = false;
+    final order = makeOrder(0);
+    expect(order.productGroups.map((group) => group.marketName), [
+      'محل أول',
+      'محل ثان',
+    ]);
+    expect(order.productGroups.first.items.single.name, 'منتج أول');
+    final delivered = order.copyWith(
+      status: CourierOrderStatus.delivered,
+      rawStatus: 'delivered',
+    );
+    expect(delivered.pickedUpMarketCount, 2);
+    expect(delivered.productGroups.every((group) => group.isPickedUp), isTrue);
+
+    await tester.pumpWidget(
+      _TestApp(
+        child: MediaQuery(
+          data: const MediaQueryData(textScaler: TextScaler.linear(1.3)),
+          child: OrderDetailsView(
+            order: order,
+            loadOrder: (_) async => order,
+            onMarketPickedUp: (orderId, sectionId) async {
+              expect(orderId, 'YM-3');
+              expect(sectionId, pickedUpCount == 0 ? 11 : 12);
+              pickedUpCount++;
+              return makeOrder(pickedUpCount);
+            },
+            onPickedUp: (_) async {
+              completedOrderPickup = true;
+              return makeOrder(2).copyWith(
+                status: CourierOrderStatus.pickedUp,
+                rawStatus: 'picked_up',
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('تم استلام منتجات 0 من 2 محلات'),
+      180,
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('market-pickup-11')),
+      180,
+    );
+    await tester.ensureVisible(find.byKey(const ValueKey('market-pickup-11')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('market-pickup-11')));
+    await tester.pumpAndSettle();
+    expect(pickedUpCount, 1);
+    expect(find.text('تم استلام منتجات 1 من 2 محلات'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('market-pickup-12')),
+      180,
+    );
+    await tester.ensureVisible(find.byKey(const ValueKey('market-pickup-12')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('market-pickup-12')));
+    await tester.pumpAndSettle();
+    expect(pickedUpCount, 2);
+    expect(find.text('تم استلام منتجات 2 من 2 محلات'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('تأكيد استلام الطلب'), 180);
+    await tester.ensureVisible(find.text('تأكيد استلام الطلب'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('تأكيد استلام الطلب'));
+    await tester.pumpAndSettle();
+    expect(completedOrderPickup, isTrue);
+  });
+
   testWidgets('delivered card shows fallback when delivered time is absent', (
     WidgetTester tester,
   ) async {
@@ -182,6 +388,7 @@ void _registerDeliveryTests() {
           'display_name': 'منتج - كبير',
           'quantity': 2,
           'unit_price': '250.00',
+          'market_name': 'محل الطلب',
           'product': {
             'description': 'وصف المنتج',
             'image': 'https://example.com/product.png',
@@ -212,6 +419,7 @@ void _registerDeliveryTests() {
     expect(order.etaMinMinutes, 25);
     expect(order.shippingCompanyName, 'شركة شحن');
     expect(order.items.single.sku, 'SKU-1');
+    expect(order.items.single.marketName, 'محل الطلب');
     expect(order.items.single.imageUrl, 'https://example.com/product.png');
     expect(order.offers.single.title, 'عرض خاص');
   });

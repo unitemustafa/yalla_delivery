@@ -26,6 +26,14 @@ class CourierOrdersApi {
     return CourierOrder.fromJson(data as Map<String, dynamic>);
   }
 
+  Future<CourierOrder> markMarketPickedUp(String orderId, int sectionId) async {
+    final data = await AuthSession.instance.patchJson(
+      'courier/orders/$orderId/markets/$sectionId/pickup/',
+      const <String, String>{},
+    );
+    return CourierOrder.fromJson(data as Map<String, dynamic>);
+  }
+
   Future<CourierOrder> markDelivered(
     String orderId, {
     String? note,
