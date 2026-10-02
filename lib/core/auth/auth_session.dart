@@ -99,8 +99,20 @@ class AuthSession {
   bool _passwordChanged = false;
   bool _accountInactiveHandled = false;
   int _sessionVersion = 0;
+  Future<void> _storageTail = Future<void>.value();
+
+  Future<void> _persist(Future<void> Function() operation) {
+    final next = _storageTail.then((_) => operation());
+    _storageTail = next.catchError((Object _) {});
+    return next;
+  }
 
   Map<String, dynamic>? currentUser;
+
+  /// Composition hooks avoid coupling authentication to Firebase/platform I/O.
+  Future<void> Function()? beforeLogout;
+  Future<void> Function()? onSessionCleared;
+  int get sessionVersion => _sessionVersion;
 
   String? get _accessToken => _tokens?.accessToken;
 
@@ -112,7 +124,9 @@ class AuthSession {
   String? absoluteUrl(Object? value) => _api.absoluteUrl(value);
 
   Future<AuthRestoreResult> restore() async {
+    final version = _sessionVersion;
     final restoredTokens = await _tokenStore.read();
+    if (version != _sessionVersion) return AuthRestoreResult.noSession;
     if (restoredTokens == null) return AuthRestoreResult.noSession;
     if (restoredTokens.sessionHasExpired(_now().toUtc())) {
       await _expireSession(notify: true);
@@ -128,6 +142,7 @@ class AuthSession {
     try {
       await _refreshOnce();
       final user = await _fetchCurrentUserForRestore();
+      _checkRequestSession(version);
       if (user['role'] == 'representative') {
         currentUser = user;
         return AuthRestoreResult.restored;
@@ -135,6 +150,7 @@ class AuthSession {
       await _expireSession(notify: true);
       return AuthRestoreResult.expired;
     } on ApiException catch (error) {
+      if (version != _sessionVersion) return AuthRestoreResult.noSession;
       if (_isAuthenticationFailure(error.statusCode)) {
         final passwordChanged = error.message == _passwordChangedMessage;
         if (passwordChanged) _notifyPasswordChanged();
@@ -152,6 +168,7 @@ class AuthSession {
     required String password,
     required bool remember,
   }) async {
+    final requestVersion = _sessionVersion;
     final cleanIdentifier = _api.removeWhitespace(identifier);
     final cleanPassword = _api.removeWhitespace(password);
     final response = await _api.postJson('auth/login/representative/', {
@@ -159,6 +176,7 @@ class AuthSession {
       'password': cleanPassword,
       'remember': remember,
     });
+    _checkRequestSession(requestVersion);
     final data = _api.decode(response);
     _accountInactiveHandled = false;
     await _handleAccountInactiveResponse(data, notify: false);
@@ -190,10 +208,13 @@ class AuthSession {
     }
 
     _sessionVersion += 1;
+    final loginVersion = _sessionVersion;
     _sessionExpiredEventSent = false;
     _passwordChanged = false;
     _accountInactiveHandled = false;
-    await _activateTokens(tokens);
+    if (!await _activateTokens(tokens, expectedVersion: loginVersion)) {
+      _checkRequestSession(loginVersion);
+    }
     currentUser = Map<String, dynamic>.from(user);
   }
 
@@ -245,9 +266,9 @@ class AuthSession {
     return data;
   }
 
-  Future<dynamic> deleteJson(String path) async {
+  Future<dynamic> deleteJson(String path, {Map<String, dynamic>? body}) async {
     final response = await _sendWithRefresh<http.Response>(
-      send: () => _authorizedDelete(path),
+      send: () => _api.delete(path, accessToken: _accessToken, body: body),
       statusCode: (response) => response.statusCode,
     );
     final data = _api.decode(response);
@@ -267,6 +288,7 @@ class AuthSession {
     List<int>? proofBytes,
     String? proofName,
   }) async {
+    final requestVersion = _sessionVersion;
     Future<http.StreamedResponse> send() {
       return _api.patchMultipart(
         path,
@@ -282,6 +304,7 @@ class AuthSession {
       statusCode: (response) => response.statusCode,
     );
     final response = await _api.responseFromStream(streamed);
+    _checkRequestSession(requestVersion);
     final data = _api.decode(response);
     await _handleAccountInactiveResponse(data);
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -310,13 +333,17 @@ class AuthSession {
   }
 
   Future<void> logout() async {
+    final version = _sessionVersion;
     try {
+      await beforeLogout?.call();
+      _checkRequestSession(version);
       final tokens = _tokens;
       if (tokens != null && !tokens.sessionHasExpired(_now().toUtc())) {
         if (!tokens.hasAccessToken ||
             tokens.accessExpiresSoon(_now().toUtc())) {
           await _refreshOnce();
         }
+        _checkRequestSession(version);
         final active = _tokens;
         if (active == null || !active.hasAccessToken) return;
         await _api.postJson('auth/logout/', {
@@ -326,12 +353,13 @@ class AuthSession {
     } catch (_) {
       // Local logout must still complete when the network is unavailable.
     } finally {
-      await clear();
+      if (version == _sessionVersion) await clear();
     }
   }
 
   Future<void> clear() async {
     _sessionVersion += 1;
+    final version = _sessionVersion;
     _tokens = null;
     _sessionExpiredEventSent = false;
     _passwordChanged = false;
@@ -340,7 +368,8 @@ class AuthSession {
     _expiryTimer?.cancel();
     _expiryTimer = null;
     currentUser = null;
-    await _tokenStore.clear();
+    await _persist(_tokenStore.clear);
+    if (version == _sessionVersion) await onSessionCleared?.call();
   }
 
   Future<void> validateForForeground() async {
@@ -382,22 +411,23 @@ class AuthSession {
     return _api.patchJson(path, body, accessToken: _accessToken);
   }
 
-  Future<http.Response> _authorizedDelete(String path) {
-    return _api.delete(path, accessToken: _accessToken);
-  }
-
   Future<T> _sendWithRefresh<T>({
     required Future<T> Function() send,
     required int Function(T response) statusCode,
   }) async {
+    final requestVersion = _sessionVersion;
     await _ensureSessionStillActive();
     await _refreshAccessIfNeeded();
+    _checkRequestSession(requestVersion);
     var response = await send();
+    _checkRequestSession(requestVersion);
     if (response is http.Response) {
       await _handleAccountInactiveResponse(_api.decode(response));
     }
     if (statusCode(response) == 401 && await _tryRefresh()) {
+      _checkRequestSession(requestVersion);
       response = await send();
+      _checkRequestSession(requestVersion);
       if (response is http.Response) {
         await _handleAccountInactiveResponse(_api.decode(response));
       }
@@ -406,6 +436,15 @@ class AuthSession {
       }
     }
     return response;
+  }
+
+  void _checkRequestSession(int version) {
+    if (version != _sessionVersion) {
+      throw const ApiException(
+        'تغيرت الجلسة. أعد فتح الطلب من حسابك الحالي.',
+        code: 'session_changed',
+      );
+    }
   }
 
   Future<void> _refreshAccessIfNeeded() async {
@@ -417,10 +456,12 @@ class AuthSession {
   }
 
   Future<bool> _tryRefresh() async {
+    final version = _sessionVersion;
     try {
       await _refreshOnce();
       return _accessToken != null;
     } on ApiException catch (error) {
+      if (version != _sessionVersion) return false;
       final passwordChanged = error.message == _passwordChangedMessage;
       if (passwordChanged) _notifyPasswordChanged();
       if (passwordChanged || _isAuthenticationFailure(error.statusCode)) {
@@ -485,6 +526,7 @@ class AuthSession {
       response = await sendRefresh();
       data = _api.decode(response);
     }
+    _checkRequestSession(refreshVersion);
     await _handleAccountInactiveResponse(data);
     if (response.statusCode < 200 || response.statusCode >= 300) {
       if (_api.isPasswordChangedResponse(data)) {
@@ -561,12 +603,16 @@ class AuthSession {
     final shouldNotify =
         notify && !_sessionExpiredEventSent && !_passwordChanged;
     _sessionVersion += 1;
+    final version = _sessionVersion;
     _tokens = null;
     _refreshInFlight = null;
     _expiryTimer?.cancel();
     _expiryTimer = null;
     currentUser = null;
-    await _tokenStore.clear();
+    await _persist(_tokenStore.clear);
+    if (version != _sessionVersion) return;
+    await onSessionCleared?.call();
+    if (version != _sessionVersion) return;
     if (shouldNotify) {
       _sessionExpiredEventSent = true;
       SessionExpiredNotifier.instance.notifyExpired();
@@ -585,7 +631,7 @@ class AuthSession {
     _tokens = tokens;
     _scheduleExpiryTimer();
     try {
-      await _tokenStore.save(tokens);
+      await _persist(() => _tokenStore.save(tokens));
     } catch (_) {
       if (identical(_tokens, tokens)) {
         _tokens = previous;
@@ -597,9 +643,9 @@ class AuthSession {
     if (expectedVersion != null && expectedVersion != _sessionVersion) {
       final active = _tokens;
       if (active == null) {
-        await _tokenStore.clear();
+        await _persist(_tokenStore.clear);
       } else if (active.refreshToken != tokens.refreshToken) {
-        await _tokenStore.save(active);
+        await _persist(() => _tokenStore.save(active));
       }
       return false;
     }

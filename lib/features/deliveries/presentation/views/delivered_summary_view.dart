@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -5,6 +6,8 @@ import '../../../../core/formatters/app_currency.dart';
 import '../../../../core/icons/app_icons.dart';
 import '../../../../core/presentation/widgets/page_top_bar.dart';
 import '../../domain/courier_order.dart';
+import '../../../../core/di/courier_orders_factory.dart';
+import '../controllers/courier_orders_cubit.dart';
 import '../widgets/order_card.dart';
 import 'order_details_view.dart';
 
@@ -27,9 +30,14 @@ extension DeliveredSummaryFilterLabel on DeliveredSummaryFilter {
 }
 
 class DeliveredSummaryView extends StatefulWidget {
-  const DeliveredSummaryView({super.key, required this.orders});
+  const DeliveredSummaryView({
+    super.key,
+    required this.orders,
+    this.remote = false,
+  });
 
   final List<CourierOrder> orders;
+  final bool remote;
 
   @override
   State<DeliveredSummaryView> createState() => _DeliveredSummaryViewState();
@@ -38,8 +46,35 @@ class DeliveredSummaryView extends StatefulWidget {
 class _DeliveredSummaryViewState extends State<DeliveredSummaryView> {
   DeliveredSummaryFilter _selectedFilter = DeliveredSummaryFilter.today;
   DateTimeRange? _customRange;
+  CourierOrdersCubit? _cubit;
+  StreamSubscription<CourierOrdersState>? _subscription;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.remote) {
+      _cubit = courierDependency<CourierOrdersCubit>();
+      _subscription = _cubit!.stream.listen((_) {
+        if (mounted) setState(() {});
+      });
+      unawaited(_refreshRemote());
+    }
+  }
+
+  Future<void> _refreshRemote() async {
+    final range = _activeRange;
+    await _cubit?.refreshHistory(from: range.start, before: range.end);
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    _cubit?.close();
+    super.dispose();
+  }
 
   List<CourierOrder> get _filteredOrders {
+    if (widget.remote) return _cubit!.state.history;
     final range = _activeRange;
     return widget.orders.where((order) {
       final deliveredAt = order.deliveredAt;
@@ -56,25 +91,25 @@ class _DeliveredSummaryViewState extends State<DeliveredSummaryView> {
     return switch (_selectedFilter) {
       DeliveredSummaryFilter.today => DateTimeRange(
         start: today,
-        end: today.add(const Duration(days: 1)),
+        end: DateTime(today.year, today.month, today.day + 1),
       ),
       DeliveredSummaryFilter.yesterday => DateTimeRange(
-        start: today.subtract(const Duration(days: 1)),
+        start: DateTime(today.year, today.month, today.day - 1),
         end: today,
       ),
       DeliveredSummaryFilter.week => DateTimeRange(
-        start: today.subtract(Duration(days: today.weekday - 1)),
-        end: today.add(const Duration(days: 1)),
+        start: DateTime(today.year, today.month, today.day - today.weekday + 1),
+        end: DateTime(today.year, today.month, today.day + 1),
       ),
       DeliveredSummaryFilter.month => DateTimeRange(
         start: DateTime(now.year, now.month),
-        end: today.add(const Duration(days: 1)),
+        end: DateTime(today.year, today.month, today.day + 1),
       ),
       DeliveredSummaryFilter.custom =>
         _customRange ??
             DateTimeRange(
               start: today,
-              end: today.add(const Duration(days: 1)),
+              end: DateTime(today.year, today.month, today.day + 1),
             ),
     };
   }
@@ -82,16 +117,17 @@ class _DeliveredSummaryViewState extends State<DeliveredSummaryView> {
   @override
   Widget build(BuildContext context) {
     final orders = _filteredOrders;
-    final totalValue = orders.fold<double>(
-      0,
-      (total, order) => total + order.total,
-    );
+    final totalValue =
+        _cubit?.state.totals?.value ??
+        orders.fold<double>(0, (total, order) => total + order.total);
 
     return Scaffold(
       body: SafeArea(
         child: ListView.separated(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-          itemCount: orders.isEmpty ? 4 : orders.length + 3,
+          itemCount:
+              (orders.isEmpty ? 4 : orders.length + 3) +
+              ((_cubit?.state.hasNext ?? false) ? 1 : 0),
           separatorBuilder: (context, index) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
             if (index == 0) {
@@ -111,7 +147,30 @@ class _DeliveredSummaryViewState extends State<DeliveredSummaryView> {
             }
 
             if (index == 2) {
-              return _SummaryTotals(count: orders.length, total: totalValue);
+              return Column(
+                children: [
+                  _SummaryTotals(
+                    count: _cubit?.state.totals?.count ?? orders.length,
+                    total: totalValue,
+                  ),
+                  if (_cubit?.state.loadingHistory ?? false)
+                    const LinearProgressIndicator(),
+                  if (_cubit?.state.historyError != null)
+                    TextButton(
+                      onPressed: _refreshRemote,
+                      child: Text(_cubit!.state.historyError!),
+                    ),
+                ],
+              );
+            }
+
+            if (index == (orders.isEmpty ? 4 : orders.length + 3)) {
+              return TextButton(
+                onPressed: (_cubit?.state.loadingHistory ?? false)
+                    ? null
+                    : _cubit?.loadMoreHistory,
+                child: const Text('تحميل المزيد'),
+              );
             }
 
             if (orders.isEmpty) {
@@ -138,6 +197,7 @@ class _DeliveredSummaryViewState extends State<DeliveredSummaryView> {
   }
 
   Future<void> _changeFilter(DeliveredSummaryFilter filter) async {
+    if (_cubit?.state.loadingHistory ?? false) return;
     if (filter == DeliveredSummaryFilter.custom) {
       final pickedRange = await _pickCustomRange();
 
@@ -146,10 +206,12 @@ class _DeliveredSummaryViewState extends State<DeliveredSummaryView> {
         _selectedFilter = filter;
         _customRange = pickedRange;
       });
+      await _refreshRemote();
       return;
     }
 
     setState(() => _selectedFilter = filter);
+    await _refreshRemote();
   }
 
   Future<DateTimeRange?> _pickCustomRange() {
@@ -166,7 +228,7 @@ class _DeliveredSummaryViewState extends State<DeliveredSummaryView> {
             _customRange ??
             DateTimeRange(
               start: today.subtract(const Duration(days: 6)),
-              end: today.add(const Duration(days: 1)),
+              end: DateTime(today.year, today.month, today.day + 1),
             ),
       ),
     );

@@ -22,6 +22,9 @@ representatives and connects to the Yalla Delivery REST API.
 - Firebase Cloud Messaging and Crashlytics
 - Secure token storage with `flutter_secure_storage`
 - Local notifications with `flutter_local_notifications`
+- Courier order state uses `flutter_bloc` Cubits and `get_it` composition,
+  with pure domain use cases and typed repository results. These dependencies
+  keep network operations out of the updated order presentation flows.
 
 ## Requirements
 

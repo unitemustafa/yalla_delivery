@@ -8,7 +8,9 @@ import '../../../../core/icons/app_icons.dart';
 import '../../../../core/notifications/courier_push_service.dart';
 import '../../../../core/routing/app_routes.dart';
 import '../../data/courier_notifications_api.dart';
-import '../../data/courier_orders_api.dart';
+import '../../../../core/di/courier_orders_factory.dart';
+import '../controllers/courier_order_actions_cubit.dart';
+import '../controllers/courier_orders_cubit.dart';
 import '../../domain/courier_order.dart';
 import '../controllers/courier_notifications_controller.dart';
 import '../controllers/courier_profile_controller.dart';
@@ -29,13 +31,15 @@ class CourierShellView extends StatefulWidget {
 
 class _CourierShellViewState extends State<CourierShellView>
     with WidgetsBindingObserver {
-  final _api = const CourierOrdersApi();
+  final _actions = courierDependency<CourierOrderActionsCubit>();
+  final _ordersCubit = courierDependency<CourierOrdersCubit>();
+  StreamSubscription<CourierOrdersState>? _ordersSubscription;
   final _notificationsApi = const CourierNotificationsApi();
   final _notificationsController = CourierNotificationsController();
   final _profileController = CourierProfileController();
-  List<CourierOrder> _orders = [];
-  bool _loading = true;
-  String? _loadError;
+  List<CourierOrder> get _orders => _ordersCubit.state.active;
+  bool get _loading => _ordersCubit.state.loading && _orders.isEmpty;
+  String? get _loadError => _orders.isEmpty ? _ordersCubit.state.error : null;
   int _selectedIndex = 0;
   int _unreadNotificationCount = 0;
   StreamSubscription<CourierPushEvent>? _pushSubscription;
@@ -47,19 +51,32 @@ class _CourierShellViewState extends State<CourierShellView>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _ordersSubscription = _ordersCubit.stream.listen((_) {
+      if (mounted) setState(() {});
+    });
     _loadOrders();
+    unawaited(_ordersCubit.refreshHistory());
     unawaited(_profileController.loadAccountIfNeeded());
     unawaited(_refreshUnreadNotificationCount());
     _pushSubscription = CourierPushService.instance.events.listen(_onPushEvent);
-    for (final event in CourierPushService.instance.takePendingOpenedEvents()) {
-      _onPushEvent(event);
-    }
+    CourierPushService.instance.attachOpenedEventRouter();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      for (final event
+          in CourierPushService.instance.takePendingOpenedEvents()) {
+        _onPushEvent(event);
+      }
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _pushSubscription?.cancel();
+    CourierPushService.instance.detachOpenedEventRouter();
+    _ordersSubscription?.cancel();
+    unawaited(_ordersCubit.close());
+    unawaited(_actions.close());
     _pushRefreshDebounce?.cancel();
     _notificationsController.clear();
     _notificationsController.dispose();
@@ -70,6 +87,7 @@ class _CourierShellViewState extends State<CourierShellView>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      unawaited(CourierPushService.instance.retryRegistrationOnResume());
       unawaited(_refreshRemoteState());
     }
   }
@@ -116,7 +134,7 @@ class _CourierShellViewState extends State<CourierShellView>
     final orderId = data['order_id']?.toString();
     if (orderId == null || orderId.isEmpty) return;
     try {
-      final order = await _api.loadOrder(orderId);
+      final order = await _actions.loadOrder(orderId);
       if (!mounted) return;
       if (!order.isActiveCourierOrder) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -140,7 +158,7 @@ class _CourierShellViewState extends State<CourierShellView>
   }
 
   List<CourierOrder> get _deliveredOrders {
-    return _orders.where((order) => order.isDelivered).toList();
+    return _ordersCubit.state.history;
   }
 
   Future<void> _loadOrders() async {
@@ -158,35 +176,18 @@ class _CourierShellViewState extends State<CourierShellView>
     }
   }
 
-  Future<void> _performLoadOrders() async {
-    if (mounted) {
-      setState(() {
-        if (_orders.isEmpty) _loading = true;
-        _loadError = null;
-      });
-    }
-    try {
-      final orders = await _api.loadOrders();
-      if (!mounted) return;
-      setState(() {
-        _orders = orders;
-        _loading = false;
-      });
-    } catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-        if (_orders.isEmpty) _loadError = error.toString();
-      });
-    }
-  }
+  Future<void> _performLoadOrders() => _ordersCubit.refreshActive();
 
   Future<void> _refreshOrdersAndUnread() async {
-    await Future.wait([_loadOrders(), _refreshUnreadNotificationCount()]);
+    await Future.wait([
+      _loadOrders(),
+      _ordersCubit.refreshHistory(),
+      _refreshUnreadNotificationCount(),
+    ]);
   }
 
   Future<CourierOrder> _markPickedUp(String orderId) async {
-    final pickedUp = await _api.markPickedUp(orderId);
+    final pickedUp = await _actions.markPickedUp(orderId);
     if (!mounted) return pickedUp;
     setState(() => _replaceOrder(pickedUp));
     unawaited(_refreshUnreadNotificationCount());
@@ -197,7 +198,7 @@ class _CourierShellViewState extends State<CourierShellView>
     String orderId,
     int sectionId,
   ) async {
-    final updated = await _api.markMarketPickedUp(orderId, sectionId);
+    final updated = await _actions.markMarketPickedUp(orderId, sectionId);
     if (mounted) setState(() => _replaceOrder(updated));
     return updated;
   }
@@ -206,7 +207,7 @@ class _CourierShellViewState extends State<CourierShellView>
     String orderId,
     DeliveryConfirmationResult result,
   ) async {
-    final delivered = await _api.markDelivered(
+    final delivered = await _actions.markDelivered(
       orderId,
       note: result.note,
       proofBytes: result.proofBytes,
@@ -218,15 +219,12 @@ class _CourierShellViewState extends State<CourierShellView>
       _selectedIndex = 1;
     });
     unawaited(_refreshUnreadNotificationCount());
+    unawaited(_ordersCubit.refreshHistory());
     return delivered;
   }
 
-  void _replaceOrder(CourierOrder updated) {
-    _orders = [
-      for (final order in _orders)
-        if (order.id == updated.id) updated else order,
-    ];
-  }
+  void _replaceOrder(CourierOrder updated) =>
+      _ordersCubit.replaceOrder(updated);
 
   Future<void> _logout() async {
     _notificationsController.clear();
@@ -253,6 +251,11 @@ class _CourierShellViewState extends State<CourierShellView>
       ),
       DeliveredHistoryView(
         orders: _deliveredOrders,
+        totals: _ordersCubit.state.totals,
+        hasNext: _ordersCubit.state.hasNext,
+        loadingMore: _ordersCubit.state.loadingHistory,
+        error: _ordersCubit.state.historyError,
+        onLoadMore: _ordersCubit.loadMoreHistory,
         onRefresh: _refreshOrdersAndUnread,
         unreadNotificationCount: _unreadNotificationCount,
         onNotificationsPressed: _openNotifications,
@@ -260,7 +263,7 @@ class _CourierShellViewState extends State<CourierShellView>
       CourierProfileView(
         controller: _profileController,
         activeOrders: _activeOrders.length,
-        deliveredOrders: _deliveredOrders.length,
+        deliveredOrders: _ordersCubit.state.totals?.count ?? 0,
         onActiveOrdersTap: () => setState(() => _selectedIndex = 0),
         onDeliveredSummaryTap: _openDeliveredSummary,
         onLogout: _logout,
@@ -305,7 +308,7 @@ class _CourierShellViewState extends State<CourierShellView>
     Navigator.push(
       context,
       MaterialPageRoute<void>(
-        builder: (_) => DeliveredSummaryView(orders: _deliveredOrders),
+        builder: (_) => const DeliveredSummaryView(orders: [], remote: true),
       ),
     );
   }

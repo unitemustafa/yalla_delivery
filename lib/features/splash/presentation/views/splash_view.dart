@@ -22,7 +22,6 @@ class _SplashViewState extends State<SplashView>
   late final AnimationController _splashController;
   late final Animation<double> _textOpacity;
   late final Animation<Offset> _textSlide;
-  late final Animation<double> _exitOpacity;
   Timer? _minDelayTimer;
   Completer<void>? _delayCompleter;
   bool _motionPreferenceApplied = false;
@@ -54,14 +53,6 @@ class _SplashViewState extends State<SplashView>
             curve: const Interval(0.28, 0.62, curve: Curves.easeOutCubic),
           ),
         );
-
-    // Contents gently dissolve to pure white near the end (~3.6s - 4.2s)
-    _exitOpacity = Tween<double>(begin: 1.0, end: 0.0).animate(
-      CurvedAnimation(
-        parent: _splashController,
-        curve: const Interval(0.85, 1.0, curve: Curves.easeInOut),
-      ),
-    );
 
     _splashController.forward();
     _restoreSession();
@@ -115,8 +106,7 @@ class _SplashViewState extends State<SplashView>
     });
 
     if (restoreResult == AuthRestoreResult.restored) {
-      await CourierPushService.instance.registerAuthenticatedDevice();
-      if (!mounted) return;
+      unawaited(CourierPushService.instance.registerAuthenticatedDevice());
       Navigator.of(context).pushReplacementNamed(AppRoutes.dashboard);
       return;
     }
@@ -162,9 +152,7 @@ class _SplashViewState extends State<SplashView>
                   vertical: 20,
                 ),
                 child: FadeTransition(
-                  opacity: _hasTemporaryRestoreFailure
-                      ? const AlwaysStoppedAnimation(1.0)
-                      : _exitOpacity,
+                  opacity: const AlwaysStoppedAnimation(1.0),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -238,6 +226,10 @@ class _SplashViewState extends State<SplashView>
                           ),
                         ),
                       ),
+                      if (_isRestoring) ...[
+                        const SizedBox(height: 24),
+                        const CircularProgressIndicator(),
+                      ],
                       if (_hasTemporaryRestoreFailure) ...[
                         const SizedBox(height: 28),
                         _RestoreFailureActions(

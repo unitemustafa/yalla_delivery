@@ -1,7 +1,5 @@
 import 'dart:typed_data';
 
-import '../../../core/auth/auth_session.dart';
-
 enum CourierOrderStatus {
   pending,
   confirmed,
@@ -79,6 +77,7 @@ class CourierOrderItem {
     this.marketName,
     this.marketId,
     this.sectionId,
+    this.additions = const [],
   });
 
   final String name;
@@ -91,6 +90,7 @@ class CourierOrderItem {
   final String? marketName;
   final int? marketId;
   final int? sectionId;
+  final List<String> additions;
 
   double get total => subtotal ?? price * quantity;
 }
@@ -232,7 +232,11 @@ class CourierOrder {
   final DeliveryProof? deliveryProof;
   final String? deliveryProofUrl;
 
-  factory CourierOrder.fromJson(Map<String, dynamic> json) {
+  factory CourierOrder.fromJson(
+    Map<String, dynamic> json, {
+    String? Function(Object?)? resolveUrl,
+  }) {
+    final url = resolveUrl ?? _clean;
     final customer = _map(json['customer']);
     final address = _map(json['delivery_address']);
     final market = _map(json['market']);
@@ -291,6 +295,7 @@ class CourierOrder {
           (item) => _itemFromJson(
             item,
             fallbackMarketName: marketCount <= 1 ? marketName : null,
+            resolveUrl: url,
           ),
         )
         .toList();
@@ -321,7 +326,7 @@ class CourierOrder {
       createdAt: createdAt,
       expectedDeliveryAt: assignedAt.add(const Duration(hours: 1)),
       items: items,
-      offers: offersJson.map(_offerFromJson).toList(),
+      offers: offersJson.map((row) => _offerFromJson(row, url)).toList(),
       itemsCount: _int(
         json['items_count'],
         fallback: _sumItemQuantities(items),
@@ -338,15 +343,13 @@ class CourierOrder {
       marketSections: sectionsJson.map(_marketSectionFromJson).toList(),
       serviceCityName: cityName,
       deliveryAreaName: areaName,
-      customerAvatarUrl: AuthSession.instance.absoluteUrl(
-        customer?['avatar_url'],
-      ),
+      customerAvatarUrl: url(customer?['avatar_url']),
       mapQuery: _joinUnique([displayAddress, label, areaName, cityName]),
       customerLocation: hasCustomerLocation
           ? OrderLocation(latitude: latitude, longitude: longitude)
           : null,
       customerNotes: _clean(json['description']),
-      orderImageUrl: AuthSession.instance.absoluteUrl(json['image']),
+      orderImageUrl: url(json['image']),
       paymentMethod: _clean(json['payment_method']),
       subtotal: _optionalNumber(json['subtotal_price']),
       discount: _optionalNumber(json['discount']),
@@ -360,9 +363,7 @@ class CourierOrder {
       updatedAt: _parseOptionalDate(json['updated_at']),
       deliveredAt: deliveredAt,
       deliveryNote: _clean(json['delivery_note']),
-      deliveryProofUrl: AuthSession.instance.absoluteUrl(
-        json['delivery_proof'],
-      ),
+      deliveryProofUrl: url(json['delivery_proof']),
     );
   }
 
@@ -508,7 +509,9 @@ class CourierOrder {
   static CourierOrderItem _itemFromJson(
     Map<String, dynamic> item, {
     String? fallbackMarketName,
+    required String? Function(Object?) resolveUrl,
   }) {
+    final url = resolveUrl;
     final product = _map(item['product']);
     final variant = _map(item['variant']);
     return CourierOrderItem(
@@ -524,11 +527,14 @@ class CourierOrder {
           _optionalNumber(item['item_subtotal']) ??
           _optionalNumber(item['subtotal']),
       description: _clean(product?['description']),
-      imageUrl: AuthSession.instance.absoluteUrl(product?['image']),
+      imageUrl: url(product?['image']),
       sku: _clean(variant?['sku']),
       marketName: _clean(item['market_name']) ?? fallbackMarketName,
       marketId: _optionalInt(item['market_id']),
       sectionId: _optionalInt(item['section_id']),
+      additions: _list(
+        item['additions'],
+      ).map((row) => _clean(row['name'])).whereType<String>().toList(),
     );
   }
 
@@ -542,12 +548,15 @@ class CourierOrder {
     );
   }
 
-  static CourierOrderOffer _offerFromJson(Map<String, dynamic> row) {
+  static CourierOrderOffer _offerFromJson(
+    Map<String, dynamic> row,
+    String? Function(Object?) url,
+  ) {
     final offer = _map(row['offer']) ?? row;
     return CourierOrderOffer(
       title: _clean(offer['title']) ?? '\u0639\u0631\u0636',
       description: _clean(offer['description']),
-      imageUrl: AuthSession.instance.absoluteUrl(offer['image']),
+      imageUrl: url(offer['image']),
       discount: _optionalNumber(offer['discount']),
     );
   }

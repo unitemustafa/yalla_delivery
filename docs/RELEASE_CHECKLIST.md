@@ -32,6 +32,16 @@
 
 ## Store rollout
 
+- Deploy the matching backend before releasing this app. Verify authenticated
+  `courier/orders/?scope=active&page=1` and
+  `courier/orders/?scope=history&status=delivered&page=1` return paginated
+  `results`, `next` and server-wide `summary` containing `count`, `total_value`
+  and `total_delivery_fees`. Date filters use timezone-aware ISO timestamps
+  in `delivered_from` and exclusive `delivered_before`.
+- Device unregistration and Firebase token deletion on logout are best effort
+  while offline. Recipient checks protect local notifications and order
+  routing; verify background notification behavior on real devices after
+  reconnecting and switching between two test accounts.
 - Complete the account-owned steps in `ios/README_RELEASE.md` on macOS/Xcode.
 - Upload Android to an internal track and iOS to TestFlight first.
 - Complete privacy disclosures for camera, notifications, crash reporting,

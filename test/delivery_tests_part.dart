@@ -674,6 +674,7 @@ void _registerDeliveryTests() {
     final source = _readSources([
       'lib/features/deliveries/presentation/views/order_details_view.dart',
       'lib/features/deliveries/presentation/views/order_details_sections_part.dart',
+      'lib/features/deliveries/presentation/views/order_products_part.dart',
       'lib/features/deliveries/presentation/views/order_contact_options_part.dart',
     ]);
 

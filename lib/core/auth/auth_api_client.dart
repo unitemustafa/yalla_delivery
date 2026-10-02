@@ -78,11 +78,19 @@ class AuthApiClient {
     );
   }
 
-  Future<http.Response> delete(String path, {required String? accessToken}) {
+  Future<http.Response> delete(
+    String path, {
+    required String? accessToken,
+    Map<String, dynamic>? body,
+  }) {
     return withRequestTimeout(
       _client.delete(
         uri(path),
-        headers: {'Authorization': 'Bearer $accessToken'},
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          if (body != null) 'Content-Type': 'application/json',
+        },
+        body: body == null ? null : jsonEncode(body),
       ),
     );
   }
@@ -107,7 +115,7 @@ class AuthApiClient {
       );
     }
     return withRequestTimeout(
-      request.send(),
+      _client.send(request),
       timeout: const Duration(seconds: 45),
     );
   }

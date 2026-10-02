@@ -5,6 +5,7 @@ import '../../../../core/formatters/app_currency.dart';
 import '../../../../core/icons/app_icons.dart';
 import '../../../../core/presentation/widgets/page_top_bar.dart';
 import '../../domain/courier_order.dart';
+import '../../domain/courier_order_page.dart';
 import '../widgets/courier_notifications_button.dart';
 import '../widgets/order_card.dart';
 import 'order_details_view.dart';
@@ -16,12 +17,22 @@ class DeliveredHistoryView extends StatelessWidget {
     required this.onRefresh,
     required this.unreadNotificationCount,
     required this.onNotificationsPressed,
+    this.totals,
+    this.hasNext = false,
+    this.loadingMore = false,
+    this.error,
+    this.onLoadMore,
   });
 
   final List<CourierOrder> orders;
   final Future<void> Function() onRefresh;
   final int unreadNotificationCount;
   final VoidCallback onNotificationsPressed;
+  final CourierOrderTotals? totals;
+  final bool hasNext;
+  final bool loadingMore;
+  final String? error;
+  final Future<void> Function()? onLoadMore;
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +41,9 @@ class DeliveredHistoryView extends StatelessWidget {
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-        itemCount: orders.isEmpty ? 3 : orders.length + 2,
+        itemCount:
+            (orders.isEmpty ? 3 : orders.length + 2) +
+            (hasNext || error != null ? 1 : 0),
         separatorBuilder: (context, index) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           Widget content;
@@ -46,7 +59,19 @@ class DeliveredHistoryView extends StatelessWidget {
               ],
             );
           } else if (index == 1) {
-            content = _HistorySummary(orders: orders);
+            content = _HistorySummary(orders: orders, totals: totals);
+          } else if (index == (orders.isEmpty ? 3 : orders.length + 2)) {
+            content = Column(
+              children: [
+                if (error != null) Text(error!),
+                TextButton(
+                  onPressed: loadingMore
+                      ? null
+                      : (hasNext ? onLoadMore : onRefresh),
+                  child: Text(loadingMore ? 'جارٍ التحميل...' : 'تحميل المزيد'),
+                ),
+              ],
+            );
           } else if (orders.isEmpty) {
             content = const _EmptyHistoryState();
           } else {
@@ -79,21 +104,23 @@ class DeliveredHistoryView extends StatelessWidget {
 }
 
 class _HistorySummary extends StatelessWidget {
-  const _HistorySummary({required this.orders});
+  const _HistorySummary({required this.orders, this.totals});
 
   final List<CourierOrder> orders;
+  final CourierOrderTotals? totals;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final totalValue = orders.fold<double>(
-      0,
-      (total, order) => total + order.total,
-    );
-    final totalDeliveryFees = orders.fold<double>(
-      0,
-      (total, order) => total + (order.deliveryPrice ?? 0),
-    );
+    final totalValue =
+        totals?.value ??
+        orders.fold<double>(0, (total, order) => total + order.total);
+    final totalDeliveryFees =
+        totals?.deliveryFees ??
+        orders.fold<double>(
+          0,
+          (total, order) => total + (order.deliveryPrice ?? 0),
+        );
 
     return Container(
       padding: const EdgeInsets.all(10),
@@ -112,7 +139,7 @@ class _HistorySummary extends StatelessWidget {
         children: [
           _SummaryPill(
             icon: AppIcons.tick_circle,
-            value: '${orders.length}',
+            value: '${totals?.count ?? orders.length}',
             label: 'طلب مسلّم',
             color: AppColors.success,
             isDark: isDark,

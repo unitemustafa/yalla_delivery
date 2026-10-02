@@ -14,12 +14,14 @@ import '../../../../core/presentation/widgets/authenticated_network_image.dart';
 import '../../../../core/presentation/widgets/network_image_or_placeholder.dart';
 import '../../../../core/presentation/widgets/page_top_bar.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
-import '../../data/courier_orders_api.dart';
+import '../../../../core/di/courier_orders_factory.dart';
+import '../controllers/courier_order_actions_cubit.dart';
 import '../../domain/courier_order.dart';
 import '../extensions/courier_order_status_presentation.dart';
 import '../widgets/delivery_confirmation_sheet.dart';
 
 part 'order_details_sections_part.dart';
+part 'order_products_part.dart';
 part 'order_details_summary_part.dart';
 part 'order_contact_options_part.dart';
 
@@ -56,7 +58,7 @@ class OrderDetailsView extends StatefulWidget {
 }
 
 class _OrderDetailsViewState extends State<OrderDetailsView> {
-  final _api = const CourierOrdersApi();
+  final _actions = courierDependency<CourierOrderActionsCubit>();
   late CourierOrder _order = widget.order;
   bool _loading = true;
   String? _error;
@@ -97,6 +99,7 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
   @override
   void dispose() {
     _pushSubscription?.cancel();
+    unawaited(_actions.close());
     super.dispose();
   }
 
@@ -106,7 +109,9 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
       _error = null;
     });
     try {
-      final order = await (widget.loadOrder ?? _api.loadOrder)(widget.order.id);
+      final order = await (widget.loadOrder ?? _actions.loadOrder)(
+        widget.order.id,
+      );
       if (!mounted) return;
       setState(() {
         _order = order;
@@ -194,7 +199,7 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
 
     setState(() => _submittingAction = _SubmittingOrderAction.pickup);
     try {
-      final handler = widget.onPickedUp ?? _api.markPickedUp;
+      final handler = widget.onPickedUp ?? _actions.markPickedUp;
       final updated = await handler(_order.id);
       if (!mounted) return;
       setState(() => _order = updated);
@@ -219,7 +224,7 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
 
     setState(() => _pickingUpSectionId = sectionId);
     try {
-      final handler = widget.onMarketPickedUp ?? _api.markMarketPickedUp;
+      final handler = widget.onMarketPickedUp ?? _actions.markMarketPickedUp;
       final updated = await handler(_order.id, sectionId);
       if (!mounted) return;
       setState(() => _order = updated);
@@ -238,17 +243,27 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
     final result = await showModalBottomSheet<DeliveryConfirmationResult>(
       context: context,
       isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
       backgroundColor: Colors.transparent,
-      builder: (_) => DeliveryConfirmationSheet(orderId: _order.id),
+      builder: (_) => DeliveryConfirmationSheet(
+        orderId: _order.id,
+        onConfirm: _submitDelivery,
+      ),
     );
 
     if (!mounted || result == null) return;
+    _showMessage('تم تسجيل التسليم بنجاح.');
+    Navigator.pop(context);
+  }
+
+  Future<void> _submitDelivery(DeliveryConfirmationResult result) async {
     setState(() => _submittingAction = _SubmittingOrderAction.delivery);
     try {
       final handler =
           widget.onDelivered ??
           (String orderId, DeliveryConfirmationResult result) {
-            return _api.markDelivered(
+            return _actions.markDelivered(
               orderId,
               note: result.note,
               proofBytes: result.proofBytes,
@@ -258,16 +273,9 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
       final updated = await handler(_order.id, result);
       if (!mounted) return;
       setState(() => _order = updated);
-    } catch (error) {
-      if (!mounted) return;
-      CustomSnackBar.showError(context: context, title: error.toString());
-      return;
     } finally {
       if (mounted) setState(() => _submittingAction = null);
     }
-    if (!mounted) return;
-    _showMessage('تم تسجيل التسليم بنجاح.');
-    Navigator.pop(context);
   }
 
   void _showMessage(String message) {

@@ -8,6 +8,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../auth/auth_session.dart';
 import '../routing/app_navigator.dart';
+import '../network/api_exception.dart';
 
 const courierOrdersChannelId = 'courier_orders';
 const accountUpdatesChannelId = 'account_updates';
@@ -71,6 +72,12 @@ class CourierPushService {
   bool _firebaseReady = false;
   bool _permissionRequested = false;
   bool _disablingAccount = false;
+  bool _routingReady = false;
+  int? _boundVersion;
+  String? _registeredToken;
+  Future<void>? _registration;
+  Timer? _registrationRetry;
+  int _retryAttempt = 0;
   Future<void> Function(Map<String, dynamic>)? _localShowOverride;
 
   Stream<CourierPushEvent> get events => _events.stream;
@@ -81,13 +88,31 @@ class CourierPushService {
   ) => _localShowOverride = callback;
 
   List<CourierPushEvent> takePendingOpenedEvents() {
-    final pending = List<CourierPushEvent>.from(_pendingOpenedEvents);
+    final currentId = AuthSession.instance.currentUser?['id'];
+    final pending = _pendingOpenedEvents.where((event) {
+      final recipient = event.data['recipient_id'] ?? event.data['courier_id'];
+      return currentId != null &&
+          (recipient == null || recipient.toString() == currentId.toString());
+    }).toList();
     _pendingOpenedEvents.clear();
     return pending;
   }
 
-  Future<bool> initialize() {
-    return _initialization ??= _initialize();
+  void attachOpenedEventRouter() => _routingReady = true;
+  void detachOpenedEventRouter() => _routingReady = false;
+
+  Future<void> retryRegistrationOnResume() {
+    _retryAttempt = 0;
+    return registerAuthenticatedDevice();
+  }
+
+  Future<bool> initialize() async {
+    AuthSession.instance.beforeLogout = unregisterAuthenticatedDevice;
+    AuthSession.instance.onSessionCleared = clearSessionNotifications;
+    final pending = _initialization ??= _initialize();
+    final ready = await pending;
+    if (!ready && identical(_initialization, pending)) _initialization = null;
+    return ready;
   }
 
   Future<bool> _initialize() async {
@@ -95,6 +120,9 @@ class CourierPushService {
       FirebaseMessaging.onBackgroundMessage(courierFirebaseBackgroundHandler);
       await Firebase.initializeApp();
       await _initializeLocalNotifications();
+      await _foregroundSubscription?.cancel();
+      await _openedSubscription?.cancel();
+      await _tokenSubscription?.cancel();
       _foregroundSubscription = FirebaseMessaging.onMessage.listen(
         (message) => unawaited(_handle(message, opened: false)),
       );
@@ -102,7 +130,7 @@ class CourierPushService {
         (message) => unawaited(_handle(message, opened: true)),
       );
       _tokenSubscription = FirebaseMessaging.instance.onTokenRefresh.listen(
-        (token) => unawaited(_registerToken(token)),
+        (_) => unawaited(_registerRefreshedToken()),
       );
       final initial = await FirebaseMessaging.instance.getInitialMessage();
       if (initial != null) await _handle(initial, opened: true);
@@ -116,15 +144,60 @@ class CourierPushService {
   }
 
   Future<void> registerAuthenticatedDevice() async {
-    if (AuthSession.instance.currentUser?['role'] != 'representative') return;
+    final active = _registration;
+    if (active != null) return active;
+    final operation = _performRegistration();
+    _registration = operation;
     try {
-      if (!await initialize()) return;
+      await operation;
+    } finally {
+      if (identical(_registration, operation)) _registration = null;
+    }
+  }
+
+  Future<void> _registerRefreshedToken() async {
+    final version = AuthSession.instance.sessionVersion;
+    await _registration;
+    if (version == AuthSession.instance.sessionVersion) {
+      await registerAuthenticatedDevice();
+    }
+  }
+
+  Future<void> _performRegistration() async {
+    if (AuthSession.instance.currentUser?['role'] != 'representative') return;
+    final version = AuthSession.instance.sessionVersion;
+    try {
+      if (!await initialize()) {
+        _scheduleRegistrationRetry(version);
+        return;
+      }
       if (!await _ensureNotificationPermission()) return;
       final token = await FirebaseMessaging.instance.getToken();
-      if (token != null && token.isNotEmpty) await _registerToken(token);
+      if (version != AuthSession.instance.sessionVersion) return;
+      if (token == null || token.isEmpty) {
+        _scheduleRegistrationRetry(version);
+        return;
+      }
+      await _registerToken(token, version);
+      _retryAttempt = 0;
+      _registrationRetry?.cancel();
     } catch (error, stackTrace) {
       _debugFailure('device registration', error, stackTrace);
+      _scheduleRegistrationRetry(version);
     }
+  }
+
+  void _scheduleRegistrationRetry(int version) {
+    if (version != AuthSession.instance.sessionVersion || _retryAttempt >= 3) {
+      return;
+    }
+    _registrationRetry?.cancel();
+    final seconds = [2, 10, 30][_retryAttempt++];
+    _registrationRetry = Timer(Duration(seconds: seconds), () {
+      if (version == AuthSession.instance.sessionVersion) {
+        unawaited(registerAuthenticatedDevice());
+      }
+    });
   }
 
   Future<bool> _ensureNotificationPermission() async {
@@ -154,17 +227,62 @@ class CourierPushService {
         status == AuthorizationStatus.provisional;
   }
 
-  Future<void> _registerToken(String token) async {
+  Future<void> _registerToken(String token, int version) async {
     if (AuthSession.instance.currentUser?['role'] != 'representative') return;
+    if (version != AuthSession.instance.sessionVersion) return;
+    await AuthSession.instance.postJson('notifications/devices/register/', {
+      'token': token,
+      'platform': defaultTargetPlatform == TargetPlatform.iOS
+          ? 'ios'
+          : 'android',
+    });
+    if (version != AuthSession.instance.sessionVersion) return;
+    _registeredToken = token;
+    _boundVersion = version;
+    _disablingAccount = false;
+  }
+
+  Future<void> unregisterAuthenticatedDevice() async {
+    _registrationRetry?.cancel();
+    final version = AuthSession.instance.sessionVersion;
     try {
-      await AuthSession.instance.postJson('notifications/devices/register/', {
-        'token': token,
-        'platform': defaultTargetPlatform == TargetPlatform.iOS
-            ? 'ios'
-            : 'android',
-      });
+      final token =
+          _registeredToken ??
+          (_firebaseReady ? await FirebaseMessaging.instance.getToken() : null);
+      if (token == null || version != AuthSession.instance.sessionVersion) {
+        return;
+      }
+      await AuthSession.instance.deleteJson(
+        'notifications/devices/unregister/',
+        body: {'token': token},
+      );
     } catch (error, stackTrace) {
-      _debugFailure('token registration', error, stackTrace);
+      _debugFailure('device unregistration', error, stackTrace);
+    }
+  }
+
+  Future<void> clearSessionNotifications() async {
+    final version = AuthSession.instance.sessionVersion;
+    _registrationRetry?.cancel();
+    _retryAttempt = 0;
+    _registration = null;
+    _boundVersion = null;
+    _registeredToken = null;
+    _disablingAccount = false;
+    _routingReady = false;
+    _pendingOpenedEvents.clear();
+    _handled.clear();
+    try {
+      await _local.cancelAll();
+    } catch (error, stackTrace) {
+      _debugFailure('local notification cleanup', error, stackTrace);
+    }
+    try {
+      if (_firebaseReady && version == AuthSession.instance.sessionVersion) {
+        await FirebaseMessaging.instance.deleteToken();
+      }
+    } catch (error, stackTrace) {
+      _debugFailure('notification cleanup', error, stackTrace);
     }
   }
 
@@ -236,17 +354,62 @@ class CourierPushService {
     required bool opened,
   }) async {
     final event = data['event']?.toString() ?? '';
+    final recipient = data['recipient_id'] ?? data['courier_id'];
+    final currentId = AuthSession.instance.currentUser?['id'];
+    final version = AuthSession.instance.sessionVersion;
+    // Foreground events feed both OS notifications and in-app feedback. A
+    // device token can outlive a login, so neither may reveal unverified data.
+    // Legacy account-disable events are checked against the API below instead.
+    if (!opened &&
+        (AuthSession.instance.currentUser?['role'] != 'representative' ||
+            currentId == null ||
+            (recipient == null && event != 'courier_account_disabled'))) {
+      return;
+    }
+    if (currentId != null &&
+        recipient != null &&
+        currentId.toString() != recipient.toString()) {
+      return;
+    }
+    if (_boundVersion != null &&
+        _boundVersion != AuthSession.instance.sessionVersion) {
+      return;
+    }
     if (event.isEmpty || !_accept(data, opened: opened)) return;
     if (event == 'courier_account_disabled') {
+      if (currentId == null) return;
+      // Old payloads have no recipient. Verify the active account on the API
+      // before invalidating a potentially different user's session.
+      if (recipient == null) {
+        try {
+          await AuthSession.instance.getJson('auth/me/');
+          return;
+        } on ApiException catch (error) {
+          if (error.code != 'account_inactive') return;
+        }
+      }
+      if (version != AuthSession.instance.sessionVersion) return;
       await _disableAccountOnce();
       return;
     }
-    if (!opened && event != 'courier_profile_updated') {
+    // A device may still receive a delayed message for a previous login.
+    // Only addressed messages may display private notification content.
+    if (!opened &&
+        currentId != null &&
+        recipient != null &&
+        event != 'courier_profile_updated') {
       await _showLocal(data);
     }
-    if (opened) await _handleTap(data);
+    if (!opened &&
+        (version != AuthSession.instance.sessionVersion ||
+            AuthSession.instance.currentUser?['role'] != 'representative' ||
+            AuthSession.instance.currentUser?['id']?.toString() !=
+                currentId.toString())) {
+      return;
+    }
     final pushEvent = CourierPushEvent(data, opened: opened);
-    if (opened && !_events.hasListener) {
+    if (opened && !_routingReady) {
+      if (_pendingOpenedEvents.length >= 20) _pendingOpenedEvents.removeAt(0);
       _pendingOpenedEvents.add(pushEvent);
     } else {
       _events.add(pushEvent);
@@ -319,25 +482,19 @@ class CourierPushService {
     );
   }
 
-  Future<void> _handleTap(Map<String, dynamic> data) async {
-    final event = data['event']?.toString();
-    if (event == 'courier_account_restored') {
-      AppNavigator.goToLogin();
-      return;
-    }
-    if (AuthSession.instance.currentUser == null) {
-      AppNavigator.goToLogin();
-    }
-  }
-
   Future<void> _disableAccountOnce() async {
     if (_disablingAccount) return;
     _disablingAccount = true;
+    final version = AuthSession.instance.sessionVersion;
     await AuthSession.instance.clear();
-    AppNavigator.goToLogin();
+    if (AuthSession.instance.sessionVersion == version + 1 &&
+        AuthSession.instance.currentUser == null) {
+      AppNavigator.goToLogin();
+    }
   }
 
   Future<void> dispose() async {
+    _registrationRetry?.cancel();
     await _foregroundSubscription?.cancel();
     await _openedSubscription?.cancel();
     await _tokenSubscription?.cancel();
