@@ -34,16 +34,14 @@ class NetworkImageOrPlaceholder extends StatelessWidget {
     final value = url?.trim() ?? '';
     if (value.isEmpty) return _placeholder(cacheWidth, cacheHeight);
 
-    return Image.network(
-      value,
+    return Image(
+      image: _resizeProvider(NetworkImage(value), cacheWidth, cacheHeight),
       key: imageKey,
       width: width,
       height: height,
       fit: fit,
       alignment: alignment,
       semanticLabel: semanticLabel,
-      cacheWidth: cacheWidth,
-      cacheHeight: cacheHeight,
       errorBuilder: (_, _, _) => _placeholder(cacheWidth, cacheHeight),
     );
   }
@@ -59,16 +57,32 @@ class NetworkImageOrPlaceholder extends StatelessWidget {
   }
 
   Widget _placeholder(int? cacheWidth, int? cacheHeight) {
-    return Image.asset(
-      placeholderAsset,
+    return Image(
+      image: _resizeProvider(
+        AssetImage(placeholderAsset),
+        cacheWidth,
+        cacheHeight,
+      ),
       key: placeholderKey,
       width: width,
       height: height,
       fit: fit,
       alignment: alignment,
       semanticLabel: semanticLabel,
-      cacheWidth: cacheWidth,
-      cacheHeight: cacheHeight,
+    );
+  }
+
+  ImageProvider _resizeProvider(
+    ImageProvider provider,
+    int? cacheWidth,
+    int? cacheHeight,
+  ) {
+    if (cacheWidth == null && cacheHeight == null) return provider;
+    return ResizeImage(
+      provider,
+      width: cacheWidth,
+      height: cacheHeight,
+      policy: ResizeImagePolicy.fit,
     );
   }
 }

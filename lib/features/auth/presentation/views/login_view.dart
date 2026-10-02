@@ -11,7 +11,11 @@ import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/routing/app_routes.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/notifications/courier_push_service.dart';
-import '../../data/login_media_repository.dart';
+import '../../../../core/presentation/widgets/network_image_or_placeholder.dart';
+import '../../../../core/di/login_media_factory.dart';
+import '../../../../core/domain/api_result.dart';
+import '../../domain/login_media.dart';
+import '../../domain/load_delivery_media.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -27,28 +31,31 @@ class _LoginViewState extends State<LoginView> {
   bool _obscurePassword = true;
   bool _rememberMe = true;
   bool _isLoading = false;
-  late final LoginMediaRepository _mediaRepository;
-  String? _headerImageUrl;
+  late final LoadDeliveryMedia _loadMedia;
+  LoginMedia? _headerMedia;
 
   @override
   void initState() {
     super.initState();
     _identifierController = TextEditingController();
     _passwordController = TextEditingController();
-    _mediaRepository = LoginMediaRepository();
+    _loadMedia = createLoadDeliveryMedia();
     _loadHeaderImage();
   }
 
   Future<void> _loadHeaderImage() async {
-    final url = await _mediaRepository.loadDeliveryImage();
-    if (mounted) setState(() => _headerImageUrl = url);
+    final media = switch (await _loadMedia()) {
+      ApiSuccess<LoginMedia?>(:final data) => data,
+      ApiFailure<LoginMedia?>() => null,
+    };
+    if (mounted) setState(() => _headerMedia = media);
   }
 
   @override
   void dispose() {
     _identifierController.dispose();
     _passwordController.dispose();
-    _mediaRepository.dispose();
+    _loadMedia.dispose();
     super.dispose();
   }
 
@@ -174,23 +181,16 @@ class _LoginViewState extends State<LoginView> {
                       child: Stack(
                         children: [
                           Positioned.fill(
-                            child: _headerImageUrl == null
-                                ? Image.asset(
-                                    AppAssets.authCourierHeader,
-                                    fit: BoxFit.cover,
-                                    alignment: Alignment.topCenter,
-                                    cacheHeight: 480,
-                                  )
-                                : Image.network(
-                                    _headerImageUrl!,
-                                    fit: BoxFit.cover,
-                                    alignment: Alignment.topCenter,
-                                    errorBuilder: (_, _, _) => Image.asset(
-                                      AppAssets.authCourierHeader,
-                                      fit: BoxFit.cover,
-                                      alignment: Alignment.topCenter,
-                                    ),
-                                  ),
+                            child: NetworkImageOrPlaceholder(
+                              url: _headerMedia?.url,
+                              placeholderAsset: AppAssets.authCourierHeader,
+                              fit: BoxFit.cover,
+                              alignment: Alignment(
+                                (_headerMedia?.focusX ?? 0.5) * 2 - 1,
+                                (_headerMedia?.focusY ?? 0) * 2 - 1,
+                              ),
+                              height: bannerHeight,
+                            ),
                           ),
                           // Soft ambient overlay for dark mode & contrast
                           Positioned.fill(
