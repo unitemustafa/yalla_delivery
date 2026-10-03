@@ -263,6 +263,13 @@ class _YallaHomeAppState extends State<YallaHomeApp> {
             );
           },
           initialRoute: AppRoutes.splash,
+          // Android intent extras can override initialRoute (including FCM's
+          // data.route). Restore auth first; push handling opens the target.
+          onGenerateInitialRoutes: (_) => [
+            AppRouter.generateRoute(
+              const RouteSettings(name: AppRoutes.splash),
+            ),
+          ],
           onGenerateRoute: AppRouter.generateRoute,
         );
       },
