@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/texts/app_texts.dart';
 import '../../../../core/icons/app_icons.dart';
 import '../../../../core/presentation/widgets/page_top_bar.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
@@ -64,7 +65,7 @@ class _CourierNotificationsViewState extends State<CourierNotificationsView> {
       if (!mounted) return;
       CustomSnackBar.showSuccess(
         context: context,
-        title: 'تم تعليم الإشعارات كمقروءة',
+        title: NotificationTexts.markedRead,
       );
     } catch (error) {
       if (!mounted) return;
@@ -76,7 +77,10 @@ class _CourierNotificationsViewState extends State<CourierNotificationsView> {
     try {
       await _controller.deleteNotification(notification);
       if (!mounted) return true;
-      CustomSnackBar.showSuccess(context: context, title: 'تم حذف الإشعار');
+      CustomSnackBar.showSuccess(
+        context: context,
+        title: NotificationTexts.deleted,
+      );
       return true;
     } catch (error) {
       if (!mounted) return false;
@@ -132,7 +136,7 @@ class _CourierNotificationsViewState extends State<CourierNotificationsView> {
     if (orderId == null || orderId.isEmpty) {
       CustomSnackBar.showError(
         context: context,
-        title: 'هذا الطلب لم يعد متاحا لك.',
+        title: NotificationTexts.orderUnavailable,
       );
       return;
     }
@@ -149,7 +153,7 @@ class _CourierNotificationsViewState extends State<CourierNotificationsView> {
       if (!mounted) return;
       CustomSnackBar.showError(
         context: context,
-        title: 'هذا الطلب لم يعد متاحا لك.',
+        title: NotificationTexts.orderUnavailable,
       );
     } finally {
       if (mounted) setState(() => _openingOrder = false);
@@ -191,8 +195,8 @@ class _CourierNotificationsViewState extends State<CourierNotificationsView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         PageTopBar(
-                          title: 'الإشعارات',
-                          subtitle: 'تنبيهات الطلبات وحالة التسليم',
+                          title: NotificationTexts.title,
+                          subtitle: NotificationTexts.subtitle,
                           showBackButton: true,
                           backButtonKey: const Key(
                             'courier_notifications_back_button',
@@ -203,7 +207,7 @@ class _CourierNotificationsViewState extends State<CourierNotificationsView> {
                               key: const Key('courier_notifications_mark_all'),
                               isDark: isDark,
                               icon: AppIcons.tick_circle,
-                              tooltip: 'تعليم الكل كمقروء',
+                              tooltip: NotificationTexts.markAllRead,
                               onPressed:
                                   _controller.unreadCount == 0 ||
                                       _controller.isMarkingAllRead
@@ -231,7 +235,7 @@ class _CourierNotificationsViewState extends State<CourierNotificationsView> {
                           const _EmptyNotificationsView()
                         else ...[
                           Text(
-                            'اليوم',
+                            CommonTexts.today,
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(fontWeight: FontWeight.w900),
                           ),

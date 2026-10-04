@@ -7,6 +7,7 @@ import 'package:lottie/lottie.dart';
 import '../../../../core/auth/auth_session.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/texts/app_texts.dart';
 import '../../../../core/notifications/courier_push_service.dart';
 import '../../../../core/routing/app_routes.dart';
 
@@ -192,13 +193,13 @@ class _SplashViewState extends State<SplashView>
                                   ),
                                   children: [
                                     TextSpan(
-                                      text: 'يلا ',
+                                      text: BrandTexts.splashFirst,
                                       style: TextStyle(
                                         color: Color(0xFF111827),
                                       ),
                                     ),
                                     TextSpan(
-                                      text: 'دليفري',
+                                      text: BrandTexts.splashSecond,
                                       style: TextStyle(
                                         color: AppColors.primary,
                                       ),
@@ -211,7 +212,7 @@ class _SplashViewState extends State<SplashView>
                               const Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 24),
                                 child: Text(
-                                  'استلم، تتبّع وسلّم الطلبات بسهولة',
+                                  BrandTexts.splashTagline,
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontFamily: 'Cairo',
@@ -266,7 +267,7 @@ class _RestoreFailureActions extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          'تعذر الاتصال. حاول مرة أخرى.',
+          CommonTexts.connectionFailed,
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
             color: const Color(0xFFDC2626),
@@ -286,7 +287,7 @@ class _RestoreFailureActions extends StatelessWidget {
             ),
           ),
           child: Text(
-            isRestoring ? 'جاري المحاولة...' : 'إعادة المحاولة',
+            isRestoring ? CommonTexts.retrying : CommonTexts.retry,
             style: const TextStyle(
               fontFamily: 'Cairo',
               fontWeight: FontWeight.w700,

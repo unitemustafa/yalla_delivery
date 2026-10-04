@@ -31,7 +31,7 @@ class _ProfileError extends StatelessWidget {
             const Icon(AppIcons.warning_2, color: AppColors.error, size: 34),
             const SizedBox(height: 10),
             Text(
-              'تعذر تحميل بيانات حساب الطيار',
+              ProfileTexts.loadFailed,
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
@@ -43,7 +43,7 @@ class _ProfileError extends StatelessWidget {
             ElevatedButton(
               key: const Key('courier_profile_retry'),
               onPressed: onRetry,
-              child: const Text('إعادة المحاولة'),
+              child: const Text(CommonTexts.retry),
             ),
           ],
         ),
@@ -82,7 +82,7 @@ class _InlineProfileError extends StatelessWidget {
           TextButton(
             key: const Key('courier_profile_inline_retry'),
             onPressed: onRetry,
-            child: const Text('تحديث'),
+            child: const Text(ProfileTexts.refresh),
           ),
         ],
       ),
@@ -109,7 +109,7 @@ class _IncompleteProfileNotice extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'بيانات تشغيل الطيار غير مكتملة.',
+              ProfileTexts.incompleteProfile,
               style: Theme.of(
                 context,
               ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w800),
@@ -155,7 +155,7 @@ class _CourierHero extends StatelessWidget {
                   children: [
                     Flexible(
                       child: Text(
-                        account?.displayName ?? 'طيار Yalla Delivery',
+                        account?.displayName ?? BrandTexts.courierFallbackName,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           color: Colors.white,
                           fontSize: 20,
@@ -175,7 +175,7 @@ class _CourierHero extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  account?.secondaryLabel ?? 'بيانات الاتصال غير محددة',
+                  account?.secondaryLabel ?? ProfileTexts.contactUnspecified,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Colors.white.withValues(alpha: 0.78),
                     fontWeight: FontWeight.w700,
@@ -216,7 +216,7 @@ class _CourierAvatar extends StatelessWidget {
           imageKey: const Key('courier_profile_avatar_network'),
           placeholderKey: const Key('courier_profile_avatar_fallback'),
           fit: BoxFit.cover,
-          semanticLabel: 'صورة الطيار',
+          semanticLabel: ProfileTexts.courierPhoto,
         ),
       ),
     );

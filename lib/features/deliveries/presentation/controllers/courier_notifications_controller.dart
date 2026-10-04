@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/texts/app_texts.dart';
 import '../../data/courier_notifications_api.dart';
 import '../../domain/courier_notification.dart';
 
@@ -173,7 +174,7 @@ class CourierNotificationsController extends ChangeNotifier {
   String _arabicError(Object error) {
     final message = error.toString().trim();
     if (message.isEmpty) {
-      return 'تعذر تحميل الإشعارات. حاول مرة أخرى.';
+      return NotificationTexts.loadFailedRetry;
     }
     return message;
   }

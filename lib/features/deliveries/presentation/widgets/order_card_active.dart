@@ -151,7 +151,7 @@ class _ActiveHeader extends StatelessWidget {
               ),
               if (order.marketCount > 1)
                 Text(
-                  '${order.marketCount} محلات',
+                  OrdersTexts.markets(order.marketCount),
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: order.status.color,
                     fontWeight: FontWeight.w900,
@@ -261,7 +261,7 @@ class _ActiveMetaRow extends StatelessWidget {
       ),
       _OrderChip(
         icon: AppIcons.shopping_bag,
-        value: '${order.itemCount} منتج',
+        value: OrdersTexts.products(order.itemCount),
         color: order.status.color,
         isDark: isDark,
       ),
@@ -279,10 +279,10 @@ class _ActiveMetaRow extends StatelessWidget {
 
   static String _paymentLabel(String method) {
     return switch (method.toLowerCase()) {
-      'cash' || 'cod' => 'كاش',
-      'card' || 'credit_card' || 'visa' => 'بطاقة',
-      'wallet' || 'e_wallet' => 'محفظة',
-      'online' => 'أونلاين',
+      'cash' || 'cod' => OrdersTexts.cash,
+      'card' || 'credit_card' || 'visa' => OrdersTexts.card,
+      'wallet' || 'e_wallet' => OrdersTexts.wallet,
+      'online' => OrdersTexts.online,
       _ => method,
     };
   }

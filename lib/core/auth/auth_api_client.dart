@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../network/api_exception.dart';
+import '../texts/app_texts.dart';
 
 class AuthApiClient {
   AuthApiClient({
@@ -134,11 +135,9 @@ class AuthApiClient {
     try {
       return await request.timeout(timeout ?? _requestTimeout);
     } on TimeoutException {
-      throw const ApiException(
-        'انتهت مهلة الاتصال. تحقق من الإنترنت وحاول مرة أخرى.',
-      );
+      throw const ApiException(AuthTexts.connectionTimeout);
     } on http.ClientException {
-      throw const ApiException('تعذر الاتصال بالخادم. حاول مرة أخرى.');
+      throw const ApiException(CommonTexts.serverConnectionFailed);
     }
   }
 
@@ -228,10 +227,10 @@ class AuthApiClient {
       return _invalidCredentialsMessage;
     }
     if (normalized.contains('account email has not been verified')) {
-      return 'الحساب لم يتم تفعيله بعد.';
+      return AuthTexts.accountNotActivated;
     }
     if (normalized.contains('not found')) {
-      return 'المسار غير موجود. تأكد من إعداد رابط الخادم.';
+      return AuthTexts.routeNotFound;
     }
     return message;
   }
@@ -241,12 +240,12 @@ class AuthApiClient {
       'admin_account_not_allowed' ||
       'client_account_not_allowed' ||
       'representative_account_required' => _invalidCredentialsMessage,
-      'account_inactive' => 'تم إيقاف حسابك. تواصل مع الدعم.',
-      'session_expired' || 'token_not_valid' => 'انتهت الجلسة.',
-      'rate_limited' => 'طلبات كتير في وقت قصير. استنى شوية وحاول تاني.',
+      'account_inactive' => AuthTexts.accountDisabled,
+      'session_expired' || 'token_not_valid' => AuthTexts.sessionEnded,
+      'rate_limited' => AuthTexts.rateLimited,
       _ => code,
     };
   }
 
-  static const _invalidCredentialsMessage = 'الإيميل أو كلمة السر غير صحيحين.';
+  static const _invalidCredentialsMessage = AuthTexts.invalidCredentials;
 }

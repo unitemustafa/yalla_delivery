@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/texts/app_texts.dart';
 import '../../../../core/formatters/app_currency.dart';
 import '../../../../core/icons/app_icons.dart';
 import '../../../../core/presentation/widgets/page_top_bar.dart';
@@ -20,11 +21,11 @@ enum DeliveredSummaryFilter { today, yesterday, week, month, custom }
 extension DeliveredSummaryFilterLabel on DeliveredSummaryFilter {
   String get label {
     return switch (this) {
-      DeliveredSummaryFilter.today => 'انهارده',
-      DeliveredSummaryFilter.yesterday => 'امبارح',
-      DeliveredSummaryFilter.week => 'الأسبوع ده',
-      DeliveredSummaryFilter.month => 'الشهر ده',
-      DeliveredSummaryFilter.custom => 'مخصص',
+      DeliveredSummaryFilter.today => DeliveredTexts.today,
+      DeliveredSummaryFilter.yesterday => DeliveredTexts.yesterday,
+      DeliveredSummaryFilter.week => DeliveredTexts.thisWeek,
+      DeliveredSummaryFilter.month => DeliveredTexts.thisMonth,
+      DeliveredSummaryFilter.custom => DeliveredTexts.custom,
     };
   }
 }
@@ -132,8 +133,8 @@ class _DeliveredSummaryViewState extends State<DeliveredSummaryView> {
           itemBuilder: (context, index) {
             if (index == 0) {
               return const PageTopBar(
-                title: 'إجمالي التسليم',
-                subtitle: 'ملخص الطلبات المسلّمة حسب الفترة',
+                title: DeliveredTexts.summaryTitle,
+                subtitle: DeliveredTexts.summarySubtitle,
                 showBackButton: true,
               );
             }
@@ -169,7 +170,7 @@ class _DeliveredSummaryViewState extends State<DeliveredSummaryView> {
                 onPressed: (_cubit?.state.loadingHistory ?? false)
                     ? null
                     : _cubit?.loadMoreHistory,
-                child: const Text('تحميل المزيد'),
+                child: const Text(DeliveredTexts.loadMore),
               );
             }
 

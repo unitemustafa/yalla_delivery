@@ -1,17 +1,16 @@
-/// Formats a [DateTime] as a human-readable Arabic relative-time string
-/// such as "منذ 5 دقائق" or "منذ ساعتين".
+import '../texts/app_texts.dart';
+
+/// Formats a [DateTime] as a relative-time string from [TimeTexts].
 class AppTimeAgo {
   AppTimeAgo._();
 
   /// Returns a relative-time string comparing [dateTime] to [DateTime.now].
-  ///
-  /// Examples: "الآن", "منذ 3 دقائق", "منذ ساعة", "منذ يومين".
   static String format(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
 
     if (difference.isNegative || difference.inSeconds < 60) {
-      return 'الآن';
+      return TimeTexts.now;
     }
 
     if (difference.inMinutes < 60) {
@@ -26,23 +25,23 @@ class AppTimeAgo {
   }
 
   static String _formatMinutes(int minutes) {
-    if (minutes == 1) return 'منذ دقيقة';
-    if (minutes == 2) return 'منذ دقيقتين';
-    if (minutes <= 10) return 'منذ $minutes دقائق';
-    return 'منذ $minutes دقيقة';
+    if (minutes == 1) return TimeTexts.oneMinuteAgo;
+    if (minutes == 2) return TimeTexts.twoMinutesAgo;
+    if (minutes <= 10) return TimeTexts.minutesAgo(minutes);
+    return TimeTexts.minutesAgoSingular(minutes);
   }
 
   static String _formatHours(int hours) {
-    if (hours == 1) return 'منذ ساعة';
-    if (hours == 2) return 'منذ ساعتين';
-    if (hours <= 10) return 'منذ $hours ساعات';
-    return 'منذ $hours ساعة';
+    if (hours == 1) return TimeTexts.oneHourAgo;
+    if (hours == 2) return TimeTexts.twoHoursAgo;
+    if (hours <= 10) return TimeTexts.hoursAgo(hours);
+    return TimeTexts.hoursAgoSingular(hours);
   }
 
   static String _formatDays(int days) {
-    if (days == 1) return 'منذ يوم';
-    if (days == 2) return 'منذ يومين';
-    if (days <= 10) return 'منذ $days أيام';
-    return 'منذ $days يوم';
+    if (days == 1) return TimeTexts.oneDayAgo;
+    if (days == 2) return TimeTexts.twoDaysAgo;
+    if (days <= 10) return TimeTexts.daysAgo(days);
+    return TimeTexts.daysAgoSingular(days);
   }
 }

@@ -1,3 +1,5 @@
+import '../../../core/texts/app_texts.dart';
+
 class CourierNotification {
   const CourierNotification({
     required this.id,
@@ -49,19 +51,19 @@ class CourierNotification {
   bool get hasLinkedOrder => orderId != null && orderId!.isNotEmpty;
 
   String get displayTitle {
-    if (type == 'order_assigned') return 'تم إسناد طلب جديد';
-    return title.isNotEmpty ? title : 'إشعار';
+    if (type == 'order_assigned') return NotificationTexts.assignedTitle;
+    return title.isNotEmpty ? title : NotificationTexts.fallbackTitle;
   }
 
   String get displayMessage {
     if (type == 'order_assigned') {
       final order = orderId;
       if (order != null && order.isNotEmpty) {
-        return 'تم إسناد الطلب #$order إليك.';
+        return NotificationTexts.assigned(order);
       }
-      return 'تم إسناد طلب جديد إليك.';
+      return NotificationTexts.assignedWithoutNumber;
     }
-    return message.isNotEmpty ? message : 'لديك إشعار جديد.';
+    return message.isNotEmpty ? message : NotificationTexts.fallbackMessage;
   }
 
   String relativeTimeLabel({DateTime? now}) {
@@ -72,12 +74,14 @@ class CourierNotification {
           ? Duration.zero
           : Duration.zero;
     }
-    if (difference.inMinutes < 1) return 'الآن';
+    if (difference.inMinutes < 1) return TimeTexts.now;
     if (difference.inMinutes < 60) {
-      return 'منذ ${difference.inMinutes} دقيقة';
+      return TimeTexts.notificationMinutesAgo(difference.inMinutes);
     }
-    if (difference.inHours < 24) return 'منذ ${difference.inHours} ساعة';
-    return 'منذ ${difference.inDays} يوم';
+    if (difference.inHours < 24) {
+      return TimeTexts.notificationHoursAgo(difference.inHours);
+    }
+    return TimeTexts.notificationDaysAgo(difference.inDays);
   }
 
   CourierNotification copyWith({

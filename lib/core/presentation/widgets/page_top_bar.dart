@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';
+import '../../texts/app_texts.dart';
 
 class PageTopBar extends StatelessWidget {
   const PageTopBar({
@@ -106,7 +107,7 @@ class _MarketStyleBackButton extends StatelessWidget {
         : _arrowLeft2;
 
     return Tooltip(
-      message: 'رجوع',
+      message: CommonTexts.back,
       child: Material(
         key: buttonKey,
         color: fillColor,

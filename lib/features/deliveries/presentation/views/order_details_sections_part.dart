@@ -18,7 +18,7 @@ class _DetailRetryState extends StatelessWidget {
             const SizedBox(height: 12),
             ElevatedButton(
               onPressed: onRetry,
-              child: const Text('إعادة المحاولة'),
+              child: const Text(CommonTexts.retry),
             ),
           ],
         ),
@@ -52,10 +52,10 @@ class _LifecycleActions extends StatelessWidget {
       children: [
         AppActionButton(
           label: order.hasPerMarketPickup && !order.canCompletePickup
-              ? 'استلم منتجات كل المحلات أولًا'
+              ? OrderDetailsTexts.pickupAllMarketsFirst
               : order.hasPerMarketPickup
-              ? 'تأكيد استلام الطلب'
-              : 'تم الاستلام',
+              ? OrderDetailsTexts.confirmPickup
+              : OrderStatusTexts.pickedUp,
           icon: pickupCompleted ? AppIcons.tick_circle : AppIcons.box,
           variant: pickupCompleted
               ? AppActionButtonVariant.outlined
@@ -68,7 +68,7 @@ class _LifecycleActions extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         AppActionButton(
-          label: 'تم التسليم',
+          label: OrderStatusTexts.delivered,
           icon: AppIcons.tick_circle,
           isLoading: submittingAction == _SubmittingOrderAction.delivery,
           onPressed: !isUpdating && order.canMarkDelivered
@@ -162,7 +162,9 @@ class _DeliveredTimeBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final value = this.value;
     final time = value == null ? '--:--' : _formatClock(value);
-    final date = value == null ? 'غير متاح' : _formatArabicDate(value);
+    final date = value == null
+        ? CommonTexts.unavailable
+        : _formatArabicDate(value);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -179,7 +181,7 @@ class _DeliveredTimeBadge extends StatelessWidget {
               Icon(AppIcons.calendar, size: 14, color: accentColor),
               const SizedBox(width: 5),
               Text(
-                'وقت التسليم',
+                OrderDetailsTexts.deliveryTime,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: mutedColor,
                   fontWeight: FontWeight.w800,
@@ -218,21 +220,7 @@ class _DeliveredTimeBadge extends StatelessWidget {
   }
 
   static String _formatArabicDate(DateTime value) {
-    const months = [
-      'يناير',
-      'فبراير',
-      'مارس',
-      'أبريل',
-      'مايو',
-      'يونيو',
-      'يوليو',
-      'أغسطس',
-      'سبتمبر',
-      'أكتوبر',
-      'نوفمبر',
-      'ديسمبر',
-    ];
-    return '${value.day} ${months[value.month - 1]}';
+    return '${value.day} ${TimeTexts.months[value.month - 1]}';
   }
 }
 
@@ -356,7 +344,7 @@ class _CustomerAvatar extends StatelessWidget {
         width: size,
         height: size,
         fit: BoxFit.cover,
-        semanticLabel: 'صورة العميل',
+        semanticLabel: OrderDetailsTexts.customerPhoto,
       ),
     );
   }
@@ -431,7 +419,10 @@ class _DetailRow extends StatelessWidget {
   Future<void> _copyValue(BuildContext context) async {
     await Clipboard.setData(ClipboardData(text: value));
     if (!context.mounted) return;
-    CustomSnackBar.showSuccess(context: context, title: 'تم نسخ $label');
+    CustomSnackBar.showSuccess(
+      context: context,
+      title: CommonTexts.copied(label),
+    );
   }
 }
 
@@ -474,7 +465,7 @@ class _ExpandableAddressRowState extends State<_ExpandableAddressRow> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'العنوان',
+                        OrderDetailsTexts.address,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: mutedColor,
                           fontWeight: FontWeight.w800,
@@ -489,11 +480,11 @@ class _ExpandableAddressRowState extends State<_ExpandableAddressRow> {
                         if (!context.mounted) return;
                         CustomSnackBar.showSuccess(
                           context: context,
-                          title: 'تم نسخ العنوان',
+                          title: OrderDetailsTexts.addressCopied,
                         );
                       },
                       icon: const Icon(AppIcons.copy, size: 17),
-                      tooltip: 'نسخ العنوان',
+                      tooltip: OrderDetailsTexts.copyAddress,
                       visualDensity: VisualDensity.compact,
                     ),
                     Icon(

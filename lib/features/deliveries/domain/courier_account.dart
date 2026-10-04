@@ -1,3 +1,5 @@
+import '../../../core/texts/app_texts.dart';
+
 class CourierAccount {
   const CourierAccount({
     required this.raw,
@@ -30,7 +32,7 @@ class CourierAccount {
     if (name.isNotEmpty) return name;
     return username?.trim().isNotEmpty == true
         ? username!.trim()
-        : 'طيار Yalla Delivery';
+        : BrandTexts.courierFallbackName;
   }
 
   String get secondaryLabel {
@@ -42,7 +44,7 @@ class CourierAccount {
     if (cleanPhone != null && cleanPhone.isNotEmpty) return cleanPhone;
     final cleanEmail = email?.trim();
     if (cleanEmail != null && cleanEmail.isNotEmpty) return cleanEmail;
-    return 'بيانات الاتصال غير محددة';
+    return ProfileTexts.contactUnspecified;
   }
 
   factory CourierAccount.fromJson(Map<String, dynamic> json) {
@@ -82,30 +84,32 @@ class CourierProfile {
 
   String get serviceCityLabel {
     final value = serviceCityName?.trim();
-    return value == null || value.isEmpty ? 'مدينة الخدمة غير محددة' : value;
+    return value == null || value.isEmpty
+        ? ProfileTexts.serviceCityUnspecified
+        : value;
   }
 
   String get availabilityLabel {
     return switch (isAvailable) {
-      true => 'متاح لاستقبال الطلبات',
-      false => 'غير متاح حاليًا',
-      null => 'الحالة غير معروفة',
+      true => ProfileTexts.available,
+      false => ProfileTexts.unavailableNow,
+      null => OrderStatusTexts.unknown,
     };
   }
 
   String get vehicleTypeLabel {
     final value = vehicleType?.trim();
-    return value == null || value.isEmpty ? 'غير محدد' : value;
+    return value == null || value.isEmpty ? CommonTexts.unspecified : value;
   }
 
   String get plateNumberLabel {
     final value = plateNumber?.trim();
-    return value == null || value.isEmpty ? 'غير محدد' : value;
+    return value == null || value.isEmpty ? CommonTexts.unspecified : value;
   }
 
   String get maxActiveOrdersLabel {
     final value = maxActiveOrders;
-    return value == null ? 'غير محدد' : '$value';
+    return value == null ? CommonTexts.unspecified : '$value';
   }
 
   factory CourierProfile.fromJson(Map<String, dynamic> json) {

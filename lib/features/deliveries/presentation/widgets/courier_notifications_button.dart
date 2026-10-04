@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/texts/app_texts.dart';
 import '../../../../core/icons/app_icons.dart';
 
 class CourierNotificationsButton extends StatelessWidget {
@@ -21,7 +22,7 @@ class CourierNotificationsButton extends StatelessWidget {
         : Colors.black.withValues(alpha: 0.045);
 
     return IconButton(
-      tooltip: 'الإشعارات',
+      tooltip: NotificationTexts.title,
       onPressed: onPressed,
       style: IconButton.styleFrom(
         fixedSize: const Size.square(44),

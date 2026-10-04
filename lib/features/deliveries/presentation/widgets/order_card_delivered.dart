@@ -156,7 +156,7 @@ class _DeliveredHeader extends StatelessWidget {
                 SizedBox(width: 4),
                 Flexible(
                   child: Text(
-                    'تم التسليم',
+                    OrderStatusTexts.delivered,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(

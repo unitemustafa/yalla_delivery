@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import '../../../core/texts/app_texts.dart';
+
 enum CourierOrderStatus {
   pending,
   confirmed,
@@ -312,13 +314,22 @@ class CourierOrder {
             _clean(customer?['first_name']),
             _clean(customer?['last_name']),
           ]) ??
-          'عميل',
+          OrderFallbackTexts.customer,
       phone: recipientPhone ?? _clean(customer?['phone']) ?? '',
       address:
-          displayAddress ?? label ?? areaName ?? cityName ?? 'العنوان غير محدد',
+          displayAddress ??
+          label ??
+          areaName ??
+          cityName ??
+          OrderFallbackTexts.addressUnspecified,
       addressLabel: label,
       addressInstructions: _clean(address?['additional_instructions']),
-      area: areaName ?? manualArea ?? cityName ?? manualCity ?? 'غير محدد',
+      area:
+          areaName ??
+          manualArea ??
+          cityName ??
+          manualCity ??
+          CommonTexts.unspecified,
       total: _number(json['total_price']),
       deliveryPrice: _optionalNumber(json['delivery_price']),
       status: status,
@@ -428,7 +439,7 @@ class CourierOrder {
           marketName:
               first.marketName ??
               (marketCount <= 1 && marketName.isNotEmpty ? marketName : null) ??
-              'المحل غير محدد',
+              OrderFallbackTexts.marketUnspecified,
           marketId: first.marketId,
           sectionId: null,
           isPickedUp: pickupCompleted,
@@ -520,7 +531,7 @@ class CourierOrder {
           _clean(item['product_name']) ??
           _clean(product?['name']) ??
           _clean(variant?['name']) ??
-          'منتج',
+          OrderFallbackTexts.product,
       quantity: _int(item['quantity']),
       price: _number(item['unit_price']),
       subtotal:
@@ -543,7 +554,8 @@ class CourierOrder {
     return CourierMarketSection(
       id: _int(row['id']),
       marketId: _optionalInt(row['market_id']) ?? _optionalInt(market?['id']),
-      marketName: _clean(market?['name']) ?? 'المحل غير محدد',
+      marketName:
+          _clean(market?['name']) ?? OrderFallbackTexts.marketUnspecified,
       pickupStatus: _clean(row['pickup_status']) ?? 'pending',
     );
   }
@@ -554,7 +566,7 @@ class CourierOrder {
   ) {
     final offer = _map(row['offer']) ?? row;
     return CourierOrderOffer(
-      title: _clean(offer['title']) ?? '\u0639\u0631\u0636',
+      title: _clean(offer['title']) ?? OrderFallbackTexts.offer,
       description: _clean(offer['description']),
       imageUrl: url(offer['image']),
       discount: _optionalNumber(offer['discount']),
@@ -630,7 +642,7 @@ class CourierOrder {
       if (text == null) continue;
       if (!parts.contains(text)) parts.add(text);
     }
-    return parts.isEmpty ? null : parts.join('، ');
+    return parts.isEmpty ? null : parts.join(CommonTexts.listSeparator);
   }
 
   static String _marketSummary({
@@ -640,8 +652,11 @@ class CourierOrder {
     required String? namesSummary,
   }) {
     if (count > 1) {
-      return namesSummary?.isNotEmpty == true ? namesSummary! : '$count محلات';
+      return namesSummary?.isNotEmpty == true
+          ? namesSummary!
+          : OrderFallbackTexts.markets(count);
     }
-    return _joinUnique([marketName, branch]) ?? 'المحل غير محدد';
+    return _joinUnique([marketName, branch]) ??
+        OrderFallbackTexts.marketUnspecified;
   }
 }

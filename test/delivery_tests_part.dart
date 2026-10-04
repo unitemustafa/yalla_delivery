@@ -542,15 +542,15 @@ void _registerDeliveryTests() {
       'lib/features/deliveries/presentation/views/order_contact_options_part.dart',
     ]);
 
-    expect(source, contains("label: const Text('تواصل')"));
+    expect(source, contains('label: const Text(OrderDetailsTexts.contact)'));
     expect(source, contains('onPressed: () => _showContactOptions(context)'));
     expect(source, contains('onPressed: () => _openCustomerMap(context)'));
-    expect(source, contains("label: const Text('الخريطة')"));
+    expect(source, contains('label: const Text(OrderDetailsTexts.map)'));
     expect(source, contains("Uri.https('www.google.com', '/maps/dir/'"));
     expect(source, contains("'destination': query"));
     expect(source, contains("'travelmode': 'driving'"));
     expect(source, contains('_DeliveredTimeBadge'));
-    expect(source, contains("'وقت التسليم'"));
+    expect(source, contains('OrderDetailsTexts.deliveryTime'));
     expect(source, isNot(contains('CourierTrackingMapView')));
     expect(source, isNot(contains('courier_tracking_map_view.dart')));
   });

@@ -37,7 +37,7 @@ class _ContactOptionsSheet extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             Text(
-              'تواصل مع العميل',
+              OrderDetailsTexts.contactCustomer,
               style: Theme.of(
                 context,
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
@@ -46,16 +46,16 @@ class _ContactOptionsSheet extends StatelessWidget {
             _ContactOptionTile(
               icon: Icons.chat_rounded,
               iconColor: AppColors.success,
-              title: 'شات واتساب',
-              subtitle: 'فتح محادثة واتساب مع العميل',
+              title: OrderDetailsTexts.whatsAppChat,
+              subtitle: OrderDetailsTexts.whatsAppChatHint,
               onTap: onWhatsApp,
             ),
             const SizedBox(height: 10),
             _ContactOptionTile(
               icon: AppIcons.call,
               iconColor: AppColors.primary,
-              title: 'مكالمة هاتفية',
-              subtitle: 'فتح تطبيق الهاتف للاتصال بالعميل',
+              title: OrderDetailsTexts.phoneCall,
+              subtitle: OrderDetailsTexts.phoneCallHint,
               onTap: onPhoneCall,
             ),
           ],

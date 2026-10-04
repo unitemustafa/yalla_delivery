@@ -103,8 +103,8 @@ class _NotificationSummary extends StatelessWidget {
               children: [
                 Text(
                   unreadCount == 0
-                      ? 'كل الإشعارات مقروءة'
-                      : '$unreadCount إشعار غير مقروء',
+                      ? NotificationTexts.allRead
+                      : NotificationTexts.unread(unreadCount),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
@@ -112,7 +112,7 @@ class _NotificationSummary extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'إجمالي $totalCount إشعار.',
+                  NotificationTexts.total(totalCount),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: Colors.white.withValues(alpha: 0.78),
                     height: 1.35,
@@ -315,7 +315,7 @@ class _NotificationDetailSheet extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'تفاصيل الإشعار',
+                          NotificationTexts.details,
                           style: Theme.of(context).textTheme.labelMedium
                               ?.copyWith(
                                 color: mutedColor,
@@ -364,8 +364,10 @@ class _NotificationDetailSheet extends StatelessWidget {
                   icon: data.isResolved
                       ? AppIcons.tick_circle
                       : AppIcons.warning_2,
-                  label: 'الحالة',
-                  value: data.isResolved ? 'تم الحل' : 'يتطلب متابعة',
+                  label: NotificationTexts.status,
+                  value: data.isResolved
+                      ? NotificationTexts.resolved
+                      : NotificationTexts.needsFollowUp,
                   color: data.isResolved
                       ? AppColors.success
                       : AppColors.warning,
@@ -379,7 +381,7 @@ class _NotificationDetailSheet extends StatelessWidget {
                     onPressed: openingOrder ? null : onOrderTap,
                     icon: const Icon(AppIcons.receipt_text, size: 18),
                     label: const Text(
-                      'فتح الطلب',
+                      NotificationTexts.openOrder,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -509,7 +511,7 @@ class _NotificationsErrorView extends StatelessWidget {
           const Icon(AppIcons.warning_2, size: 30, color: AppColors.error),
           const SizedBox(height: 10),
           Text(
-            'تعذر تحميل الإشعارات',
+            NotificationTexts.loadFailed,
             style: Theme.of(
               context,
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
@@ -527,7 +529,7 @@ class _NotificationsErrorView extends StatelessWidget {
           ElevatedButton(
             key: const Key('courier_notifications_retry'),
             onPressed: onRetry,
-            child: const Text('إعادة المحاولة'),
+            child: const Text(CommonTexts.retry),
           ),
         ],
       ),
@@ -562,14 +564,14 @@ class _EmptyNotificationsView extends StatelessWidget {
           Icon(AppIcons.notification_bing, size: 30, color: mutedColor),
           const SizedBox(height: 10),
           Text(
-            'لا توجد إشعارات حاليا',
+            NotificationTexts.empty,
             style: Theme.of(
               context,
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 4),
           Text(
-            'أي تنبيه جديد بخصوص الطلبات سيظهر هنا.',
+            NotificationTexts.emptyHint,
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: mutedColor,

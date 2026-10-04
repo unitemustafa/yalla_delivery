@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/auth/auth_session.dart';
+import '../../../../core/texts/app_texts.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/icons/app_icons.dart';
@@ -83,7 +84,7 @@ class _LoginViewState extends State<LoginView> {
       if (!mounted) return;
       CustomSnackBar.showError(
         context: context,
-        title: 'تعذر الاتصال بالخادم. حاول مرة أخرى.',
+        title: CommonTexts.serverConnectionFailed,
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -118,25 +119,25 @@ class _LoginViewState extends State<LoginView> {
     if (!launched && mounted) {
       CustomSnackBar.showError(
         context: context,
-        title: 'تعذر فتح واتساب على هذا الجهاز.',
+        title: LoginTexts.whatsAppUnavailable,
       );
     }
   }
 
   String? _validateIdentifier(String? value) {
     final text = value?.trim() ?? '';
-    if (text.isEmpty) return 'اكتب رقم الموبايل أو الإيميل';
+    if (text.isEmpty) return LoginTexts.identifierRequired;
     final looksLikeEmail = text.contains('@') && text.contains('.');
     final looksLikePhone = RegExp(r'^\+?\d{10,15}$').hasMatch(text);
     final looksLikeUsername = RegExp(r'^[\w.@+-]+$').hasMatch(text);
     if (!looksLikeEmail && !looksLikePhone && !looksLikeUsername) {
-      return 'اكتب إيميل صحيح أو رقم موبايل صحيح';
+      return LoginTexts.identifierInvalid;
     }
     return null;
   }
 
   String? _validatePassword(String? value) {
-    if ((value ?? '').isEmpty) return 'اكتب كلمة المرور';
+    if ((value ?? '').isEmpty) return LoginTexts.passwordRequired;
     return null;
   }
 
@@ -267,7 +268,7 @@ class _LoginViewState extends State<LoginView> {
                                         CrossAxisAlignment.stretch,
                                     children: [
                                       Text(
-                                        'أهلاً يا كابتن',
+                                        LoginTexts.welcome,
                                         textAlign: TextAlign.start,
                                         style: theme.textTheme.headlineLarge
                                             ?.copyWith(
@@ -282,8 +283,7 @@ class _LoginViewState extends State<LoginView> {
                                         keyboardType: TextInputType.text,
                                         validator: _validateIdentifier,
                                         textInputAction: TextInputAction.next,
-                                        labelText:
-                                            'موبايل / إيميل / اسم مستخدم',
+                                        labelText: LoginTexts.identifierHint,
                                         prefixIcon: AppIcons.direct_right,
                                       ),
                                       _LoginTextField(
@@ -292,14 +292,14 @@ class _LoginViewState extends State<LoginView> {
                                         obscureText: _obscurePassword,
                                         textInputAction: TextInputAction.done,
                                         onFieldSubmitted: (_) => _signIn(),
-                                        labelText: 'كلمة المرور',
+                                        labelText: LoginTexts.password,
                                         prefixIcon: AppIcons.password_check,
                                         suffixIcon: _obscurePassword
                                             ? AppIcons.eye_slash
                                             : AppIcons.eye,
                                         suffixTooltip: _obscurePassword
-                                            ? 'إظهار كلمة المرور'
-                                            : 'إخفاء كلمة المرور',
+                                            ? LoginTexts.showPassword
+                                            : LoginTexts.hidePassword,
                                         onSuffixIconPressed: () {
                                           setState(() {
                                             _obscurePassword =
@@ -313,7 +313,7 @@ class _LoginViewState extends State<LoginView> {
                                       ),
                                       const SizedBox(height: 26),
                                       AppActionButton(
-                                        label: 'تسجيل الدخول',
+                                        label: CommonTexts.signIn,
                                         isLoading: _isLoading,
                                         onPressed: _isLoading ? null : _signIn,
                                       ),
@@ -405,7 +405,7 @@ class _LoginViewState extends State<LoginView> {
                 const SizedBox(width: 10),
                 Flexible(
                   child: Text(
-                    'تذكرني',
+                    LoginTexts.rememberMe,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 14,
@@ -428,7 +428,7 @@ class _LoginViewState extends State<LoginView> {
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
           child: const Text(
-            'الدعم الفني',
+            LoginTexts.support,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
           ),

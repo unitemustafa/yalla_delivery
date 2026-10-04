@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/icons/app_icons.dart';
+import '../../../../core/texts/app_texts.dart';
 import '../../../../core/presentation/widgets/app_action_button.dart';
 
 class DeliveryConfirmationResult {
@@ -64,7 +65,9 @@ class _DeliveryConfirmationSheetState extends State<DeliveryConfirmationSheet> {
         if (!mounted) return;
         setState(() => _readingProof = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تعذر قراءة صورة إثبات التسليم.')),
+          const SnackBar(
+            content: Text(DeliveryConfirmationTexts.unreadableProof),
+          ),
         );
         return;
       }
@@ -102,7 +105,7 @@ class _DeliveryConfirmationSheetState extends State<DeliveryConfirmationSheet> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('تعذر فتح الكاميرا. تحقق من الإذن وحاول مرة أخرى.'),
+          content: Text(DeliveryConfirmationTexts.cameraUnavailable),
         ),
       );
     }
@@ -165,14 +168,14 @@ class _DeliveryConfirmationSheetState extends State<DeliveryConfirmationSheet> {
                   ),
                   const SizedBox(height: 18),
                   Text(
-                    'تأكيد التسليم',
+                    DeliveryConfirmationTexts.title,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'أضف صورة أو ملاحظة تسليم للطلب ${widget.orderId}.',
+                    DeliveryConfirmationTexts.prompt(widget.orderId),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: mutedColor,
                       fontWeight: FontWeight.w700,
@@ -186,7 +189,7 @@ class _DeliveryConfirmationSheetState extends State<DeliveryConfirmationSheet> {
                     minLines: 3,
                     maxLines: 5,
                     decoration: const InputDecoration(
-                      labelText: 'ملاحظة التسليم (اختياري)',
+                      labelText: DeliveryConfirmationTexts.noteHint,
                       alignLabelWithHint: true,
                     ),
                   ),
@@ -203,8 +206,8 @@ class _DeliveryConfirmationSheetState extends State<DeliveryConfirmationSheet> {
                       ),
                       label: Text(
                         _proof == null
-                            ? 'التقاط صورة إثبات التسليم'
-                            : 'تم التقاط الصورة — إعادة الالتقاط',
+                            ? DeliveryConfirmationTexts.captureProof
+                            : DeliveryConfirmationTexts.retakeProof,
                       ),
                     ),
                   ),
@@ -219,12 +222,16 @@ class _DeliveryConfirmationSheetState extends State<DeliveryConfirmationSheet> {
                           Icons.delete_outline_rounded,
                           size: 18,
                         ),
-                        label: const Text('حذف الصورة'),
+                        label: const Text(
+                          DeliveryConfirmationTexts.deletePhoto,
+                        ),
                       ),
                     ),
                   const SizedBox(height: 16),
                   AppActionButton(
-                    label: _readingProof ? 'جاري التأكيد...' : 'تأكيد',
+                    label: _readingProof
+                        ? CommonTexts.confirming
+                        : CommonTexts.confirm,
                     icon: AppIcons.tick_circle,
                     onPressed: _readingProof ? null : _confirm,
                   ),
@@ -232,7 +239,7 @@ class _DeliveryConfirmationSheetState extends State<DeliveryConfirmationSheet> {
                     onPressed: _readingProof
                         ? null
                         : () => Navigator.pop(context),
-                    child: const Text('إلغاء'),
+                    child: const Text(CommonTexts.cancel),
                   ),
                 ],
               ),

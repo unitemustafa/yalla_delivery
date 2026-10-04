@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/texts/app_texts.dart';
 import '../../../../core/formatters/app_currency.dart';
 import '../../../../core/formatters/app_time_ago.dart';
 import '../../../../core/icons/app_icons.dart';

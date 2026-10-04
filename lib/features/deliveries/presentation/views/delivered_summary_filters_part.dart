@@ -176,7 +176,7 @@ class _CustomRangeSheetState extends State<_CustomRangeSheet> {
                 children: [
                   Expanded(
                     child: _DateSelectionCard(
-                      label: 'من',
+                      label: DeliveredTexts.from,
                       value: _formatDate(_startDate),
                       onTap: () => _pickDate(isStart: true),
                       compact: true,
@@ -185,7 +185,7 @@ class _CustomRangeSheetState extends State<_CustomRangeSheet> {
                   const SizedBox(width: 6),
                   Expanded(
                     child: _DateSelectionCard(
-                      label: 'إلى',
+                      label: DeliveredTexts.to,
                       value: _formatDate(_endDate),
                       onTap: () => _pickDate(isStart: false),
                       compact: true,
@@ -212,7 +212,7 @@ class _CustomRangeSheetState extends State<_CustomRangeSheet> {
                           color: AppColors.primary.withValues(alpha: 0.28),
                         ),
                       ),
-                      child: const Text('إعادة الضبط'),
+                      child: const Text(DeliveredTexts.reset),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -229,7 +229,7 @@ class _CustomRangeSheetState extends State<_CustomRangeSheet> {
                           ),
                         ),
                       ),
-                      child: const Text('تطبيق'),
+                      child: const Text(DeliveredTexts.apply),
                     ),
                   ),
                 ],
@@ -464,7 +464,7 @@ class _SelectedDaysSummary extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'عدد الأيام المحددة',
+              DeliveredTexts.selectedDays,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelMedium?.copyWith(
@@ -475,7 +475,7 @@ class _SelectedDaysSummary extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            '$days يوم',
+            TimeTexts.days(days),
             maxLines: 1,
             style: theme.textTheme.titleSmall?.copyWith(
               color: AppColors.primary,

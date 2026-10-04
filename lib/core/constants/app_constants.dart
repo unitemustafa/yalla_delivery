@@ -1,3 +1,5 @@
+import '../texts/app_texts.dart';
+
 abstract final class AppConstants {
-  static const appName = 'Yalla Delivery';
+  static const appName = BrandTexts.appName;
 }

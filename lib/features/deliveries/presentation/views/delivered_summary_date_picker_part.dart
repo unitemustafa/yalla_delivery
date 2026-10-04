@@ -149,7 +149,7 @@ class _WheelDatePickerDialogState extends State<_WheelDatePickerDialog> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'اختيار التاريخ',
+                          DeliveredTexts.pickDate,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
@@ -205,11 +205,17 @@ class _WheelDatePickerDialogState extends State<_WheelDatePickerDialog> {
                     height: 42,
                     child: Row(
                       children: [
-                        const Expanded(child: _WheelColumnLabel('اليوم')),
+                        const Expanded(
+                          child: _WheelColumnLabel(CommonTexts.today),
+                        ),
                         _WheelDivider(color: outlineColor),
-                        const Expanded(child: _WheelColumnLabel('الشهر')),
+                        const Expanded(
+                          child: _WheelColumnLabel(DeliveredTexts.month),
+                        ),
                         _WheelDivider(color: outlineColor),
-                        const Expanded(child: _WheelColumnLabel('السنة')),
+                        const Expanded(
+                          child: _WheelColumnLabel(DeliveredTexts.year),
+                        ),
                       ],
                     ),
                   ),
@@ -269,7 +275,7 @@ class _WheelDatePickerDialogState extends State<_WheelDatePickerDialog> {
                       ),
                       side: BorderSide(color: outlineColor),
                     ),
-                    child: const Text('إلغاء'),
+                    child: const Text(CommonTexts.cancel),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -286,7 +292,7 @@ class _WheelDatePickerDialogState extends State<_WheelDatePickerDialog> {
                         ),
                       ),
                     ),
-                    child: const Text('تأكيد'),
+                    child: const Text(CommonTexts.confirm),
                   ),
                 ),
               ],

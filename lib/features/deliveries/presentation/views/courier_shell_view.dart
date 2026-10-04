@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/texts/app_texts.dart';
 import '../../../../core/auth/auth_session.dart';
 import '../../../../core/icons/app_icons.dart';
 import '../../../../core/notifications/courier_push_service.dart';
@@ -138,7 +139,7 @@ class _CourierShellViewState extends State<CourierShellView>
       if (!mounted) return;
       if (!order.isActiveCourierOrder) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('لم يعد هذا الطلب معينًا لك.')),
+          const SnackBar(content: Text(ShellTexts.orderUnassigned)),
         );
         await _loadOrders();
         return;
@@ -147,7 +148,7 @@ class _CourierShellViewState extends State<CourierShellView>
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('لم يعد هذا الطلب متاحًا لك.')),
+        const SnackBar(content: Text(ShellTexts.orderUnavailable)),
       );
       await _loadOrders();
     }
@@ -285,7 +286,7 @@ class _CourierShellViewState extends State<CourierShellView>
                       const SizedBox(height: 12),
                       ElevatedButton(
                         onPressed: _loadOrders,
-                        child: const Text('إعادة المحاولة'),
+                        child: const Text(CommonTexts.retry),
                       ),
                     ],
                   ),
@@ -375,17 +376,17 @@ class _CourierBottomNavigationBar extends StatelessWidget {
 
   static const _items = [
     _NavigationItemData(
-      label: 'الطلبات',
+      label: ShellTexts.orders,
       icon: AppIcons.receipt_text,
       activeIcon: AppIcons.truck_fast,
     ),
     _NavigationItemData(
-      label: 'المسلّمة',
+      label: ShellTexts.delivered,
       icon: AppIcons.document_text,
       activeIcon: AppIcons.tick_circle,
     ),
     _NavigationItemData(
-      label: 'حسابي',
+      label: ShellTexts.account,
       icon: AppIcons.user,
       activeIcon: AppIcons.profile_circle,
     ),

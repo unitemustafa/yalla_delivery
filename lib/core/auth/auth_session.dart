@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../network/api_exception.dart';
+import '../texts/app_texts.dart';
 import 'auth_api_client.dart';
 import 'auth_token_store.dart';
 import 'password_changed_notifier.dart';
@@ -181,20 +182,14 @@ class AuthSession {
     _accountInactiveHandled = false;
     await _handleAccountInactiveResponse(data, notify: false);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _api.responseException(
-        response,
-        data,
-        '\u062a\u0639\u0630\u0631 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644.',
-      );
+      throw _api.responseException(response, data, AuthTexts.loginFailed);
     }
 
     final map = data as Map<String, dynamic>;
     final user = map['user'];
     if (user is! Map || user['role'] != 'representative') {
       await clear();
-      throw const ApiException(
-        '\u0627\u0633\u062a\u062c\u0627\u0628\u0629 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u063a\u064a\u0631 \u0645\u0643\u062a\u0645\u0644\u0629.',
-      );
+      throw const ApiException(AuthTexts.incompleteLogin);
     }
 
     late final StoredAuthTokens tokens;
@@ -202,9 +197,7 @@ class AuthSession {
       tokens = tokensFromApiPayload(map);
     } on FormatException {
       await clear();
-      throw const ApiException(
-        '\u0627\u0633\u062a\u062c\u0627\u0628\u0629 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644 \u063a\u064a\u0631 \u0645\u0643\u062a\u0645\u0644\u0629.',
-      );
+      throw const ApiException(AuthTexts.incompleteLogin);
     }
 
     _sessionVersion += 1;
@@ -225,11 +218,7 @@ class AuthSession {
     );
     final data = _api.decode(response);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _api.responseException(
-        response,
-        data,
-        '\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a.',
-      );
+      throw _api.responseException(response, data, AuthTexts.loadDataFailed);
     }
     return data;
   }
@@ -241,11 +230,7 @@ class AuthSession {
     );
     final data = _api.decode(response);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _api.responseException(
-        response,
-        data,
-        '\u062a\u0639\u0630\u0631 \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u0637\u0644\u0628.',
-      );
+      throw _api.responseException(response, data, AuthTexts.sendRequestFailed);
     }
     return data;
   }
@@ -257,11 +242,7 @@ class AuthSession {
     );
     final data = _api.decode(response);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _api.responseException(
-        response,
-        data,
-        '\u062a\u0639\u0630\u0631 \u062a\u062d\u062f\u064a\u062b \u0627\u0644\u0637\u0644\u0628.',
-      );
+      throw _api.responseException(response, data, AuthTexts.updateOrderFailed);
     }
     return data;
   }
@@ -273,11 +254,7 @@ class AuthSession {
     );
     final data = _api.decode(response);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _api.responseException(
-        response,
-        data,
-        '\u062a\u0639\u0630\u0631 \u062d\u0630\u0641 \u0627\u0644\u0639\u0646\u0635\u0631.',
-      );
+      throw _api.responseException(response, data, AuthTexts.deleteItemFailed);
     }
     return data;
   }
@@ -311,7 +288,7 @@ class AuthSession {
       throw _api.responseException(
         response,
         data,
-        '\u062a\u0639\u0630\u0631 \u062a\u0623\u0643\u064a\u062f \u0627\u0644\u062a\u0633\u0644\u064a\u0645.',
+        AuthTexts.confirmDeliveryFailed,
       );
     }
     return data;
@@ -326,7 +303,7 @@ class AuthSession {
       throw _api.responseException(
         response,
         _api.decode(response),
-        '\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0627\u0644\u0635\u0648\u0631\u0629.',
+        AuthTexts.loadImageFailed,
       );
     }
     return response.bodyBytes;
@@ -381,16 +358,10 @@ class AuthSession {
     final response = await _authorizedGet('auth/me/');
     final data = _api.decode(response);
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _api.responseException(
-        response,
-        data,
-        '\u062a\u0639\u0630\u0631 \u062a\u062d\u0645\u064a\u0644 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u062d\u0633\u0627\u0628.',
-      );
+      throw _api.responseException(response, data, AuthTexts.loadAccountFailed);
     }
     if (data is Map<String, dynamic>) return data;
-    throw const ApiException(
-      '\u062a\u0639\u0630\u0631 \u0642\u0631\u0627\u0621\u0629 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u062d\u0633\u0627\u0628.',
-    );
+    throw const ApiException(AuthTexts.readAccountFailed);
   }
 
   Future<http.Response> _authorizedGet(String path) {
@@ -441,7 +412,7 @@ class AuthSession {
   void _checkRequestSession(int version) {
     if (version != _sessionVersion) {
       throw const ApiException(
-        'تغيرت الجلسة. أعد فتح الطلب من حسابك الحالي.',
+        AuthTexts.sessionChanged,
         code: 'session_changed',
       );
     }
@@ -495,18 +466,14 @@ class AuthSession {
 
   Future<void> _refresh() async {
     if (_isSessionExpired()) {
-      throw const ApiException(
-        '\u0627\u0646\u062a\u0647\u062a \u0627\u0644\u062c\u0644\u0633\u0629.',
-      );
+      throw const ApiException(AuthTexts.sessionEnded);
     }
 
     final refreshVersion = _sessionVersion;
     final current = _tokens;
     final refresh = current?.refreshToken;
     if (refresh == null) {
-      throw const ApiException(
-        '\u0644\u0627 \u062a\u0648\u062c\u062f \u062c\u0644\u0633\u0629 \u0645\u062d\u0641\u0648\u0638\u0629.',
-      );
+      throw const ApiException(AuthTexts.noSavedSession);
     }
 
     Future<http.Response> sendRefresh() {
@@ -519,9 +486,7 @@ class AuthSession {
       final retryAfter = _api.retryAfterSeconds(response, data) ?? 1;
       await _delay(Duration(seconds: retryAfter.clamp(1, 60).toInt()));
       if (refreshVersion != _sessionVersion || _isSessionExpired()) {
-        throw const ApiException(
-          '\u0627\u0646\u062a\u0647\u062a \u0627\u0644\u062c\u0644\u0633\u0629.',
-        );
+        throw const ApiException(AuthTexts.sessionEnded);
       }
       response = await sendRefresh();
       data = _api.decode(response);
@@ -532,17 +497,11 @@ class AuthSession {
       if (_api.isPasswordChangedResponse(data)) {
         throw const ApiException(_passwordChangedMessage, statusCode: 401);
       }
-      throw _api.responseException(
-        response,
-        data,
-        '\u0627\u0646\u062a\u0647\u062a \u0627\u0644\u062c\u0644\u0633\u0629.',
-      );
+      throw _api.responseException(response, data, AuthTexts.sessionEnded);
     }
 
     if (refreshVersion != _sessionVersion) {
-      throw const ApiException(
-        '\u0627\u0646\u062a\u0647\u062a \u0627\u0644\u062c\u0644\u0633\u0629.',
-      );
+      throw const ApiException(AuthTexts.sessionEnded);
     }
 
     final map = data as Map<String, dynamic>;
@@ -553,9 +512,7 @@ class AuthSession {
       expectedVersion: refreshVersion,
     );
     if (!activated) {
-      throw const ApiException(
-        '\u0627\u0646\u062a\u0647\u062a \u0627\u0644\u062c\u0644\u0633\u0629.',
-      );
+      throw const ApiException(AuthTexts.sessionEnded);
     }
   }
 
@@ -583,9 +540,7 @@ class AuthSession {
     if (!_isSessionExpired()) return;
     await _expireSession(notify: true);
     throw ApiException(
-      _passwordChanged
-          ? _passwordChangedMessage
-          : '\u0627\u0646\u062a\u0647\u062a \u0627\u0644\u062c\u0644\u0633\u0629.',
+      _passwordChanged ? _passwordChangedMessage : AuthTexts.sessionEnded,
     );
   }
 
@@ -676,7 +631,7 @@ class AuthSession {
     PasswordChangedNotifier.instance.notifyPasswordChanged();
   }
 
-  static const _passwordChangedMessage = 'تم تغيير كلمة المرور.';
+  static const _passwordChangedMessage = AuthTexts.passwordChanged;
 }
 
 Timer _createTimer(Duration duration, void Function() callback) {

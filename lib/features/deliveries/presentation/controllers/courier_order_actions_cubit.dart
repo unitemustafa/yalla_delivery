@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/domain/api_result.dart';
+import '../../../../core/texts/app_texts.dart';
 import '../../domain/courier_order.dart';
 import '../../domain/courier_orders_use_cases.dart';
 
@@ -54,7 +55,7 @@ class CourierOrderActionsCubit extends Cubit<CourierOrderActionState> {
         if (!isClosed) emit(CourierOrderActionSuccess(data));
         return data;
       case ApiFailure(:final message):
-        final text = message ?? 'تعذر تنفيذ العملية. حاول مرة أخرى.';
+        final text = message ?? AuthTexts.actionFailed;
         if (!isClosed) emit(CourierOrderActionFailure(text));
         throw CourierOrderActionException(text);
     }

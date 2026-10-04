@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/texts/app_texts.dart';
 import '../../../../core/icons/app_icons.dart';
 import '../../domain/courier_order.dart';
 
 extension CourierOrderStatusPresentation on CourierOrderStatus {
   String get label {
     return switch (this) {
-      CourierOrderStatus.pending => 'قيد الانتظار',
-      CourierOrderStatus.confirmed => 'مؤكد',
-      CourierOrderStatus.assigned => 'مطلوب الاستلام',
-      CourierOrderStatus.pickedUp => 'تم الاستلام',
-      CourierOrderStatus.delivered => 'تم التسليم',
-      CourierOrderStatus.failedDelivery => 'تعذر التوصيل',
-      CourierOrderStatus.cancelled => 'ملغي',
-      CourierOrderStatus.unknown => 'حالة غير معروفة',
+      CourierOrderStatus.pending => OrderStatusTexts.pending,
+      CourierOrderStatus.confirmed => OrderStatusTexts.confirmed,
+      CourierOrderStatus.assigned => OrderStatusTexts.assigned,
+      CourierOrderStatus.pickedUp => OrderStatusTexts.pickedUp,
+      CourierOrderStatus.delivered => OrderStatusTexts.delivered,
+      CourierOrderStatus.failedDelivery => OrderStatusTexts.failedDelivery,
+      CourierOrderStatus.cancelled => OrderStatusTexts.cancelled,
+      CourierOrderStatus.unknown => OrderStatusTexts.unknown,
     };
   }
 

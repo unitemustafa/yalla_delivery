@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../constants/app_colors.dart';
+import '../../texts/app_texts.dart';
 import '../../connectivity/internet_status_controller.dart';
 
 class OfflineConnectionBanner extends StatefulWidget {
@@ -97,7 +98,7 @@ class _OfflineBannerContent extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'لا يوجد اتصال بالإنترنت. تحقق من الشبكة لإكمال التحديثات.',
+              SystemTexts.offline,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style:

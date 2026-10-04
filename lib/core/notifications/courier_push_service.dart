@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../auth/auth_session.dart';
+import '../texts/app_texts.dart';
 import '../routing/app_navigator.dart';
 import '../network/api_exception.dart';
 
@@ -29,13 +30,13 @@ class CourierPushEvent {
     final remoteTitle = data['_title']?.toString().trim() ?? '';
     if (remoteTitle.isNotEmpty) return remoteTitle;
     return switch (event) {
-      'courier_order_assigned' => 'طلب توصيل جديد',
-      'courier_order_unassigned' => 'تم سحب طلب',
-      'courier_order_cancelled' => 'تم إلغاء طلب',
-      'courier_account_restored' => 'تم استعادة حسابك',
-      'courier_profile_updated' => 'تم تحديث بيانات حسابك',
-      'courier_availability_changed' => 'تحديث حالة استقبال الطلبات',
-      _ => 'تحديث من يلا ماركت',
+      'courier_order_assigned' => SystemTexts.newDelivery,
+      'courier_order_unassigned' => SystemTexts.orderWithdrawn,
+      'courier_order_cancelled' => SystemTexts.orderCancelled,
+      'courier_account_restored' => SystemTexts.accountRestored,
+      'courier_profile_updated' => SystemTexts.accountUpdated,
+      'courier_availability_changed' => SystemTexts.availabilityUpdated,
+      _ => SystemTexts.marketUpdate,
     };
   }
 
@@ -44,15 +45,13 @@ class CourierPushEvent {
     if (remoteBody.isNotEmpty) return remoteBody;
     final number = data['order_number'] ?? data['order_id'] ?? '';
     return switch (event) {
-      'courier_order_assigned' =>
-        'تم تعيين الطلب #$number لك. اضغط لعرض التفاصيل.',
-      'courier_order_unassigned' => 'تم سحب الطلب #$number من قائمة مهامك.',
-      'courier_order_cancelled' => 'تم إلغاء الطلب #$number.',
-      'courier_account_restored' =>
-        'تم استعادة حساب الطيار بواسطة فريق دعم يلا ماركت.',
-      'courier_profile_updated' => 'تم تحديث بيانات الطيار.',
-      'courier_availability_changed' => 'تم تحديث حالة استقبال الطلبات.',
-      _ => 'تم تحديث بيانات حساب الطيار.',
+      'courier_order_assigned' => SystemTexts.assignedBody(number),
+      'courier_order_unassigned' => SystemTexts.withdrawnBody(number),
+      'courier_order_cancelled' => SystemTexts.cancelledBody(number),
+      'courier_account_restored' => SystemTexts.courierRestored,
+      'courier_profile_updated' => SystemTexts.courierUpdated,
+      'courier_availability_changed' => SystemTexts.availabilityStatusUpdated,
+      _ => SystemTexts.courierAccountUpdated,
     };
   }
 }
@@ -314,7 +313,7 @@ class CourierPushService {
     await android?.createNotificationChannel(
       const AndroidNotificationChannel(
         courierOrdersChannelId,
-        'طلبات التوصيل',
+        SystemTexts.ordersChannel,
         importance: Importance.high,
         playSound: true,
         enableVibration: true,
@@ -323,7 +322,7 @@ class CourierPushService {
     await android?.createNotificationChannel(
       const AndroidNotificationChannel(
         accountUpdatesChannelId,
-        'تحديثات الحساب',
+        SystemTexts.accountChannel,
         importance: Importance.high,
         playSound: true,
         enableVibration: true,
@@ -332,7 +331,7 @@ class CourierPushService {
     await android?.createNotificationChannel(
       const AndroidNotificationChannel(
         courierUpdatesChannelId,
-        'تحديثات الطيار',
+        SystemTexts.courierChannel,
         importance: Importance.defaultImportance,
         playSound: true,
         enableVibration: true,

@@ -26,7 +26,7 @@ class _SummaryTotals extends StatelessWidget {
           Expanded(
             child: _SummaryMetric(
               icon: AppIcons.tick_circle,
-              label: 'عدد التسليم',
+              label: DeliveredTexts.deliveryCount,
               value: '$count',
               color: AppColors.success,
             ),
@@ -35,7 +35,7 @@ class _SummaryTotals extends StatelessWidget {
           Expanded(
             child: _SummaryMetric(
               icon: AppIcons.money_3,
-              label: 'القيمة',
+              label: DeliveredTexts.value,
               value: AppCurrency.format(total),
               color: AppColors.primary,
             ),
@@ -131,7 +131,7 @@ class _EmptySummaryState extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            'مفيش تسليم في الفترة دي',
+            DeliveredTexts.emptyPeriod,
             style: Theme.of(
               context,
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),

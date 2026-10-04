@@ -1,4 +1,5 @@
 import '../../../core/domain/api_result.dart';
+import '../../../core/texts/app_texts.dart';
 import '../../../core/network/api_exception.dart';
 import '../domain/courier_order.dart';
 import '../domain/courier_order_page.dart';
@@ -22,12 +23,12 @@ class CourierOrdersRepositoryImpl implements CourierOrdersRepository {
     } on FormatException {
       return const ApiFailure(
         ApiFailureReason.invalidResponse,
-        message: 'استجابة الطلب غير مكتملة. حاول مرة أخرى.',
+        message: AuthTexts.incompleteOrderResponse,
       );
     } catch (_) {
       return const ApiFailure(
         ApiFailureReason.network,
-        message: 'تعذر الاتصال. حاول مرة أخرى.',
+        message: CommonTexts.connectionFailed,
       );
     }
   }

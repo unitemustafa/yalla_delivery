@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/texts/app_texts.dart';
 import '../../data/courier_profile_api.dart';
 import '../../domain/courier_account.dart';
 
@@ -62,7 +63,7 @@ class CourierProfileController extends ChangeNotifier {
   String _arabicError(Object error) {
     final message = error.toString().replaceFirst('Exception: ', '').trim();
     if (message.isEmpty) {
-      return 'تعذر تحميل بيانات حساب الطيار. حاول مرة أخرى.';
+      return ProfileTexts.loadFailedRetry;
     }
     return message;
   }

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_assets.dart';
+import '../../../../core/texts/app_texts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/formatters/app_currency.dart';
 import '../../../../core/icons/app_icons.dart';
@@ -89,8 +90,8 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
       SnackBar(
         content: Text(
           event.event == 'courier_order_unassigned'
-              ? 'لم يعد هذا الطلب معينًا لك.'
-              : 'تم إلغاء هذا الطلب.',
+              ? ShellTexts.orderUnassigned
+              : OrderDetailsTexts.orderCancelled,
         ),
       ),
     );
@@ -133,7 +134,7 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
 
     if (!launched) {
       if (!context.mounted) return;
-      _showMessage('تعذر فتح واتساب على هذا الجهاز.');
+      _showMessage(LoginTexts.whatsAppUnavailable);
     }
   }
 
@@ -141,7 +142,7 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
     final uri = Uri(scheme: 'tel', path: _order.phone);
     if (!await canLaunchUrl(uri)) {
       if (!context.mounted) return;
-      _showMessage('المكالمات غير مدعومة على هذا الجهاز.');
+      _showMessage(OrderDetailsTexts.callsUnsupported);
       return;
     }
     await launchUrl(uri);
@@ -161,7 +162,7 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
     });
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!launched && context.mounted) {
-      _showMessage('تعذر فتح الخريطة على هذا الجهاز.');
+      _showMessage(OrderDetailsTexts.mapUnavailable);
     }
   }
 
@@ -203,7 +204,7 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
       final updated = await handler(_order.id);
       if (!mounted) return;
       setState(() => _order = updated);
-      _showMessage('تم تسجيل الاستلام بنجاح.');
+      _showMessage(OrderDetailsTexts.pickupRecorded);
     } catch (error) {
       if (!mounted) return;
       CustomSnackBar.showError(context: context, title: error.toString());
@@ -228,7 +229,7 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
       final updated = await handler(_order.id, sectionId);
       if (!mounted) return;
       setState(() => _order = updated);
-      _showMessage('تم تسجيل استلام منتجات المحل.');
+      _showMessage(OrderDetailsTexts.marketPickupRecorded);
     } catch (error) {
       if (!mounted) return;
       CustomSnackBar.showError(context: context, title: error.toString());
@@ -253,7 +254,7 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
     );
 
     if (!mounted || result == null) return;
-    _showMessage('تم تسجيل التسليم بنجاح.');
+    _showMessage(OrderDetailsTexts.deliveryRecorded);
     Navigator.pop(context);
   }
 
@@ -300,7 +301,7 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
                 children: [
                   PageTopBar(
-                    title: 'تفاصيل الطلب',
+                    title: OrderDetailsTexts.title,
                     subtitle: order.id,
                     showBackButton: true,
                   ),
@@ -308,7 +309,7 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
                   _OrderHeader(order: order, mutedColor: mutedColor),
                   const SizedBox(height: 12),
                   _SectionCard(
-                    title: 'بيانات العميل',
+                    title: OrderDetailsTexts.customerData,
                     children: [
                       _CustomerSummaryTile(
                         order: order,
@@ -317,7 +318,7 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
                       if (order.addressLabel != null)
                         _DetailRow(
                           icon: AppIcons.location,
-                          label: 'اسم العنوان',
+                          label: OrderDetailsTexts.addressName,
                           value: order.addressLabel!,
                           mutedColor: mutedColor,
                         ),
@@ -325,34 +326,34 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
                       if (order.deliveryAreaName != null)
                         _DetailRow(
                           icon: AppIcons.location,
-                          label: 'المنطقة',
+                          label: OrderDetailsTexts.area,
                           value: order.deliveryAreaName!,
                           mutedColor: mutedColor,
                         ),
                       if (order.serviceCityName != null)
                         _DetailRow(
                           icon: AppIcons.location,
-                          label: 'المدينة',
+                          label: OrderDetailsTexts.city,
                           value: order.serviceCityName!,
                           mutedColor: mutedColor,
                         ),
                       _DetailRow(
                         icon: AppIcons.shopping_bag,
-                        label: 'المحل',
+                        label: OrderDetailsTexts.market,
                         value: order.marketSummary,
                         mutedColor: mutedColor,
                       ),
                       if (order.marketCount > 1)
                         _DetailRow(
                           icon: AppIcons.box,
-                          label: 'عدد المحلات',
+                          label: OrderDetailsTexts.marketCount,
                           value: '${order.marketCount}',
                           mutedColor: mutedColor,
                         ),
                       if (order.customerNotes != null)
                         _DetailRow(
                           icon: AppIcons.document_text,
-                          label: 'ملاحظة العميل',
+                          label: OrderDetailsTexts.customerNote,
                           value: order.customerNotes!,
                           mutedColor: mutedColor,
                           copyable: true,
@@ -360,7 +361,7 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
                       if (order.addressInstructions != null)
                         _DetailRow(
                           icon: AppIcons.info_circle,
-                          label: 'تعليمات العنوان',
+                          label: OrderDetailsTexts.addressInstructions,
                           value: order.addressInstructions!,
                           mutedColor: mutedColor,
                           copyable: true,
@@ -385,7 +386,7 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
                   if (order.offers.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     _SectionCard(
-                      title: 'العروض المضافة',
+                      title: OrderDetailsTexts.addedOffers,
                       children: [
                         for (final offer in order.offers)
                           _OfferRow(offer: offer),
@@ -407,7 +408,7 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
                             child: OutlinedButton.icon(
                               onPressed: () => _showContactOptions(context),
                               icon: const Icon(AppIcons.call, size: 18),
-                              label: const Text('تواصل'),
+                              label: const Text(OrderDetailsTexts.contact),
                             ),
                           ),
                         if (order.phone.isNotEmpty && _hasMapDestination)
@@ -417,7 +418,7 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
                             child: OutlinedButton.icon(
                               onPressed: () => _openCustomerMap(context),
                               icon: const Icon(AppIcons.routing, size: 18),
-                              label: const Text('الخريطة'),
+                              label: const Text(OrderDetailsTexts.map),
                             ),
                           ),
                       ],

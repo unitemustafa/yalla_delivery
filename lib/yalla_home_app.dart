@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/constants/app_constants.dart';
+import 'core/texts/app_texts.dart';
 import 'core/auth/password_changed_notifier.dart';
 import 'core/auth/session_expired_notifier.dart';
 import 'core/presentation/widgets/offline_connection_banner.dart';
@@ -118,12 +119,12 @@ class _YallaHomeAppState extends State<YallaHomeApp> {
               size: 34,
             ),
             title: Text(
-              'تم تغيير كلمة المرور',
+              AuthTexts.passwordChangedTitle,
               textAlign: TextAlign.center,
               style: TextStyle(color: textColor, fontWeight: FontWeight.w900),
             ),
             content: Text(
-              'تم تغيير كلمة مرور حسابك. سجّل الدخول بكلمة المرور الجديدة للمتابعة.',
+              AuthTexts.passwordChangedMessage,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: mutedColor,
@@ -148,7 +149,7 @@ class _YallaHomeAppState extends State<YallaHomeApp> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text('تسجيل الدخول'),
+                  child: const Text(CommonTexts.signIn),
                 ),
               ),
             ],
@@ -194,12 +195,12 @@ class _YallaHomeAppState extends State<YallaHomeApp> {
               size: 34,
             ),
             title: Text(
-              'انتهت الجلسة',
+              AuthTexts.sessionEndedTitle,
               textAlign: TextAlign.center,
               style: TextStyle(color: textColor, fontWeight: FontWeight.w900),
             ),
             content: Text(
-              'سجّل دخول تاني عشان تكمل. «افتكرني» بتحافظ على تسجيل دخولك بعد قفل التطبيق.',
+              AuthTexts.sessionEndedHint,
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: mutedColor,
@@ -224,7 +225,7 @@ class _YallaHomeAppState extends State<YallaHomeApp> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text('تسجيل الدخول'),
+                  child: const Text(CommonTexts.signIn),
                 ),
               ),
             ],

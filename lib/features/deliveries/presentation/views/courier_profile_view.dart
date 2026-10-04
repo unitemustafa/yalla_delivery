@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/auth/auth_session.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/texts/app_texts.dart';
 import '../../../../core/icons/app_icons.dart';
 import '../../../../core/presentation/widgets/network_image_or_placeholder.dart';
 import '../../../../core/presentation/widgets/page_top_bar.dart';
@@ -141,8 +142,8 @@ class _ProfileBody extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const PageTopBar(
-          title: 'حساب الطيار',
-          subtitle: 'بيانات التشغيل والحساب',
+          title: ProfileTexts.title,
+          subtitle: ProfileTexts.subtitle,
         ),
         const SizedBox(height: 18),
         if (controller.isLoading && !controller.hasLoaded)
@@ -162,7 +163,7 @@ class _ProfileBody extends StatelessWidget {
                 child: _CourierStat(
                   icon: AppIcons.receipt_text,
                   value: '$activeOrders',
-                  label: 'طلبات نشطة',
+                  label: ProfileTexts.activeOrders,
                   color: AppColors.primary,
                   onTap: onActiveOrdersTap,
                 ),
@@ -172,7 +173,7 @@ class _ProfileBody extends StatelessWidget {
                 child: _CourierStat(
                   icon: AppIcons.tick_circle,
                   value: '$deliveredOrders',
-                  label: 'طلبات مسلّمة',
+                  label: ProfileTexts.deliveredOrders,
                   color: AppColors.success,
                   onTap: onDeliveredSummaryTap,
                 ),
@@ -188,51 +189,58 @@ class _ProfileBody extends StatelessWidget {
           ],
           const SizedBox(height: 22),
           _SettingsSection(
-            title: 'بيانات تشغيل الطيار',
+            title: ProfileTexts.operationData,
             isDark: isDark,
             children: [
               _SettingsInfoTile(
                 icon: AppIcons.location,
-                title: 'مدينة الخدمة',
+                title: ProfileTexts.serviceCity,
                 subtitle:
                     account?.profile?.serviceCityLabel ??
-                    'مدينة الخدمة غير محددة',
+                    ProfileTexts.serviceCityUnspecified,
                 accentColor: AppColors.info,
               ),
               _SettingsDivider(isDark: isDark),
               _SettingsInfoTile(
                 icon: AppIcons.tick_circle,
-                title: 'حالة استقبال الطلبات',
+                title: ProfileTexts.receivingStatus,
                 subtitle:
-                    account?.profile?.availabilityLabel ?? 'الحالة غير معروفة',
+                    account?.profile?.availabilityLabel ??
+                    OrderStatusTexts.unknown,
                 accentColor: _availabilityColor(account?.profile?.isAvailable),
               ),
               _SettingsDivider(isDark: isDark),
               _SettingsInfoTile(
                 icon: AppIcons.truck_fast,
-                title: 'نوع المركبة',
-                subtitle: account?.profile?.vehicleTypeLabel ?? 'غير محدد',
+                title: ProfileTexts.vehicleType,
+                subtitle:
+                    account?.profile?.vehicleTypeLabel ??
+                    CommonTexts.unspecified,
                 accentColor: AppColors.primary,
               ),
               _SettingsDivider(isDark: isDark),
               _SettingsInfoTile(
                 icon: AppIcons.info_circle,
-                title: 'رقم اللوحة',
-                subtitle: account?.profile?.plateNumberLabel ?? 'غير محدد',
+                title: ProfileTexts.plateNumber,
+                subtitle:
+                    account?.profile?.plateNumberLabel ??
+                    CommonTexts.unspecified,
                 accentColor: AppColors.warning,
               ),
               _SettingsDivider(isDark: isDark),
               _SettingsInfoTile(
                 icon: AppIcons.receipt_text,
-                title: 'الحد الأقصى للطلبات النشطة',
-                subtitle: account?.profile?.maxActiveOrdersLabel ?? 'غير محدد',
+                title: ProfileTexts.maxActiveOrders,
+                subtitle:
+                    account?.profile?.maxActiveOrdersLabel ??
+                    CommonTexts.unspecified,
                 accentColor: AppColors.success,
               ),
             ],
           ),
           const SizedBox(height: 18),
           _SettingsSection(
-            title: 'إعدادات التطبيق',
+            title: ProfileTexts.appSettings,
             isDark: isDark,
             children: const [_ThemeModeTile()],
           ),
@@ -257,9 +265,9 @@ class _ProfileBody extends StatelessWidget {
       builder: (dialogContext) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          title: const Text('تسجيل الخروج', textAlign: TextAlign.center),
+          title: const Text(ProfileTexts.logout, textAlign: TextAlign.center),
           content: const Text(
-            'متأكد إنك عايز تسجل خروج؟',
+            ProfileTexts.logoutConfirm,
             textAlign: TextAlign.center,
           ),
           actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -269,7 +277,7 @@ class _ProfileBody extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () => Navigator.pop(dialogContext),
-                    child: const Text('إلغاء'),
+                    child: const Text(CommonTexts.cancel),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -279,7 +287,7 @@ class _ProfileBody extends StatelessWidget {
                       Navigator.pop(dialogContext);
                       onLogout();
                     },
-                    child: const Text('تأكيد'),
+                    child: const Text(CommonTexts.confirm),
                   ),
                 ),
               ],

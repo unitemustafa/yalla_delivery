@@ -1,4 +1,5 @@
 import '../../../core/auth/auth_session.dart';
+import '../../../core/texts/app_texts.dart';
 import '../../../core/network/api_exception.dart';
 import '../domain/courier_account.dart';
 
@@ -14,12 +15,12 @@ class CourierProfileApi {
 
   static CourierAccount parseUserResponse(dynamic data) {
     if (data is! Map<String, dynamic>) {
-      throw const ApiException('تعذر قراءة بيانات حساب الطيار.');
+      throw const ApiException(AuthTexts.readCourierAccountFailed);
     }
 
     final account = CourierAccount.fromJson(data);
     if (account.role != 'representative') {
-      throw const ApiException('هذا الحساب ليس حساب طيار.');
+      throw const ApiException(AuthTexts.notCourierAccount);
     }
     return account;
   }

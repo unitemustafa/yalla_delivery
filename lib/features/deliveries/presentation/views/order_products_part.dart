@@ -23,14 +23,14 @@ class _ProductsByMarket extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return _SectionCard(
-      title: 'المنتجات',
+      title: OrderDetailsTexts.products,
       children: [
         if (total > 1) ...[
           Row(
             children: [
               Expanded(
                 child: Text(
-                  'تم استلام منتجات $pickedUp من $total محلات',
+                  OrderDetailsTexts.pickedUpMarkets(pickedUp, total),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: pickedUp == total ? AppColors.success : mutedColor,
                     fontWeight: FontWeight.w900,
@@ -60,7 +60,7 @@ class _ProductsByMarket extends StatelessWidget {
         ],
         if (groups.isEmpty)
           Text(
-            'لا توجد منتجات في هذا الطلب.',
+            OrderDetailsTexts.noProducts,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: mutedColor,
               fontWeight: FontWeight.w800,
@@ -100,7 +100,7 @@ class _ProductsByMarket extends StatelessWidget {
                 ),
                 if (group.isPickedUp)
                   Text(
-                    'تم الاستلام',
+                    OrderStatusTexts.pickedUp,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: AppColors.success,
                       fontWeight: FontWeight.w900,
@@ -114,7 +114,7 @@ class _ProductsByMarket extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Text(
-                'لا توجد منتجات لهذا المحل.',
+                OrderDetailsTexts.noMarketProducts,
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: mutedColor),
@@ -137,7 +137,7 @@ class _ProductsByMarket extends StatelessWidget {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(AppIcons.tick_circle, size: 17),
-              label: const Text('تأكيد استلام منتجات المحل'),
+              label: const Text(OrderDetailsTexts.confirmMarketPickup),
             ),
             const SizedBox(height: 8),
           ],
@@ -201,7 +201,9 @@ class _ProductRow extends StatelessWidget {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        'المحل: ${item.marketName ?? 'غير محدد'}',
+                        OrderDetailsTexts.marketLine(
+                          item.marketName ?? CommonTexts.unspecified,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -214,12 +216,16 @@ class _ProductRow extends StatelessWidget {
                 ),
                 if (item.additions.isNotEmpty) ...[
                   const SizedBox(height: 6),
-                  Text('الإضافات: ${item.additions.join('، ')}'),
+                  Text(
+                    OrderDetailsTexts.additions(
+                      item.additions.join(CommonTexts.listSeparator),
+                    ),
+                  ),
                 ],
                 if (item.sku != null) ...[
                   const SizedBox(height: 3),
                   Text(
-                    'SKU: ${item.sku}',
+                    OrderDetailsTexts.sku(item.sku!),
                     textDirection: TextDirection.ltr,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: AppColors.lightTextSecondary,
@@ -346,10 +352,10 @@ class _OrderRequestImageCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SectionCard(
-      title: 'صورة مرفقة بالطلب',
+      title: OrderDetailsTexts.attachedPhoto,
       children: [
         Text(
-          'الصورة التي أرسلها العميل مع تفاصيل الطلب.',
+          OrderDetailsTexts.customerPhotoDescription,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: mutedColor,
             fontWeight: FontWeight.w700,
@@ -364,7 +370,7 @@ class _OrderRequestImageCard extends StatelessWidget {
             width: double.infinity,
             height: 210,
             fit: BoxFit.contain,
-            semanticLabel: 'صورة الطلب المرسلة من العميل',
+            semanticLabel: OrderDetailsTexts.customerOrderPhoto,
           ),
         ),
       ],
@@ -384,24 +390,24 @@ class _DeliveryProofCard extends StatelessWidget {
     final proofUrl = order.deliveryProofUrl;
 
     return _SectionCard(
-      title: 'إثبات التسليم',
+      title: OrderDetailsTexts.deliveryProof,
       children: [
         _DetailRow(
           icon: AppIcons.calendar,
-          label: 'وقت التسليم',
+          label: OrderDetailsTexts.deliveryTime,
           value: _formatDateTime(order.deliveredAt),
           mutedColor: mutedColor,
         ),
         if (order.deliveryNote != null)
           _DetailRow(
             icon: AppIcons.document_text,
-            label: 'ملاحظة',
+            label: OrderDetailsTexts.note,
             value: order.deliveryNote!,
             mutedColor: mutedColor,
           ),
         if (proof == null && proofUrl == null)
           Text(
-            'لا توجد صورة مرفوعة.',
+            OrderDetailsTexts.noUploadedPhoto,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: mutedColor,
               fontWeight: FontWeight.w800,
@@ -416,7 +422,7 @@ class _DeliveryProofCard extends StatelessWidget {
               fit: BoxFit.cover,
               width: double.infinity,
               height: 160,
-              semanticLabel: 'صورة إثبات التسليم',
+              semanticLabel: OrderDetailsTexts.deliveryProofPhoto,
             ),
           )
         else

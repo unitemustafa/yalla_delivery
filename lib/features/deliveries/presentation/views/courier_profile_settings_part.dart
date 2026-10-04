@@ -89,7 +89,7 @@ class _ThemeModeTile extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'ثيم التطبيق',
+                          ProfileTexts.theme,
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(fontWeight: FontWeight.w900),
                           maxLines: 1,
@@ -151,7 +151,7 @@ class _ThemeModeTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 18),
                 Text(
-                  'ثيم التطبيق',
+                  ProfileTexts.theme,
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
@@ -169,7 +169,7 @@ class _ThemeModeTile extends StatelessWidget {
                       AppThemeController.instance.setThemeMode(themeMode);
                       CustomSnackBar.showSuccess(
                         context: context,
-                        title: 'تم تحديث الثيم',
+                        title: ProfileTexts.themeUpdated,
                       );
                     },
                   ),
@@ -185,17 +185,17 @@ class _ThemeModeTile extends StatelessWidget {
 
   String _themeModeLabel(ThemeMode mode) {
     return switch (mode) {
-      ThemeMode.system => 'النظام',
-      ThemeMode.light => 'فاتح',
-      ThemeMode.dark => 'داكن',
+      ThemeMode.system => ProfileTexts.themeSystem,
+      ThemeMode.light => ProfileTexts.themeLight,
+      ThemeMode.dark => ProfileTexts.themeDark,
     };
   }
 
   String _themeModeSubtitle(ThemeMode mode) {
     return switch (mode) {
-      ThemeMode.system => 'استخدم إعدادات الجهاز.',
-      ThemeMode.light => 'استخدم الثيم الفاتح دائمًا.',
-      ThemeMode.dark => 'استخدم الثيم الداكن دائمًا.',
+      ThemeMode.system => ProfileTexts.themeSystemHint,
+      ThemeMode.light => ProfileTexts.themeLightHint,
+      ThemeMode.dark => ProfileTexts.themeDarkHint,
     };
   }
 
@@ -400,7 +400,7 @@ class _LogoutButton extends StatelessWidget {
       child: OutlinedButton.icon(
         onPressed: onPressed,
         icon: const Icon(AppIcons.logout, size: 19),
-        label: const Text('تسجيل الخروج'),
+        label: const Text(ProfileTexts.logout),
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.error,
           side: BorderSide(color: AppColors.error.withValues(alpha: 0.35)),

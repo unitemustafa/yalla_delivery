@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/texts/app_texts.dart';
 import '../../../../core/formatters/app_currency.dart';
 import '../../../../core/icons/app_icons.dart';
 import '../../../../core/presentation/widgets/page_top_bar.dart';
@@ -49,8 +50,8 @@ class DeliveredHistoryView extends StatelessWidget {
           Widget content;
           if (index == 0) {
             content = PageTopBar(
-              title: 'المسلّمة',
-              subtitle: 'الطلبات المسلّمة',
+              title: DeliveredTexts.title,
+              subtitle: DeliveredTexts.subtitle,
               actions: [
                 CourierNotificationsButton(
                   unreadCount: unreadNotificationCount,
@@ -68,7 +69,11 @@ class DeliveredHistoryView extends StatelessWidget {
                   onPressed: loadingMore
                       ? null
                       : (hasNext ? onLoadMore : onRefresh),
-                  child: Text(loadingMore ? 'جارٍ التحميل...' : 'تحميل المزيد'),
+                  child: Text(
+                    loadingMore
+                        ? DeliveredTexts.loading
+                        : DeliveredTexts.loadMore,
+                  ),
                 ),
               ],
             );
@@ -140,7 +145,7 @@ class _HistorySummary extends StatelessWidget {
           _SummaryPill(
             icon: AppIcons.tick_circle,
             value: '${totals?.count ?? orders.length}',
-            label: 'طلب مسلّم',
+            label: DeliveredTexts.deliveredOrder,
             color: AppColors.success,
             isDark: isDark,
           ),
@@ -148,7 +153,7 @@ class _HistorySummary extends StatelessWidget {
           _SummaryPill(
             icon: AppIcons.money_3,
             value: AppCurrency.format(totalValue),
-            label: 'إجمالي القيمة',
+            label: DeliveredTexts.totalValue,
             color: AppColors.primary,
             isDark: isDark,
           ),
@@ -156,7 +161,7 @@ class _HistorySummary extends StatelessWidget {
           _SummaryPill(
             icon: AppIcons.truck_fast,
             value: AppCurrency.format(totalDeliveryFees),
-            label: 'رسوم التوصيل',
+            label: DeliveredTexts.deliveryFees,
             color: AppColors.info,
             isDark: isDark,
           ),
@@ -263,7 +268,7 @@ class _EmptyHistoryState extends StatelessWidget {
           Icon(AppIcons.document_text, size: 30, color: iconColor),
           const SizedBox(height: 10),
           Text(
-            'لسه مفيش طلبات مسلّمة',
+            DeliveredTexts.empty,
             style: Theme.of(
               context,
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),

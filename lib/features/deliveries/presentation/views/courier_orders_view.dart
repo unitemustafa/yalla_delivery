@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/texts/app_texts.dart';
 import '../../../../core/formatters/app_currency.dart';
 import '../../../../core/icons/app_icons.dart';
 import '../../../../core/presentation/widgets/page_top_bar.dart';
@@ -49,8 +50,8 @@ class _CourierOrdersViewState extends State<CourierOrdersView> {
         itemBuilder: (context, index) {
           if (index == 0) {
             return PageTopBar(
-              title: 'طلبات التوصيل',
-              subtitle: 'الطلبات المطلوب تسليمها اليوم',
+              title: OrdersTexts.title,
+              subtitle: OrdersTexts.subtitle,
               actions: [
                 CourierNotificationsButton(
                   unreadCount: widget.unreadNotificationCount,
@@ -127,7 +128,7 @@ class _OrdersSummaryCard extends StatelessWidget {
           _SummaryPill(
             icon: AppIcons.receipt_text,
             value: '$activeCount',
-            label: 'نشط',
+            label: OrdersTexts.active,
             color: AppColors.primary,
             isDark: isDark,
           ),
@@ -135,7 +136,7 @@ class _OrdersSummaryCard extends StatelessWidget {
           _SummaryPill(
             icon: AppIcons.box,
             value: '$pickupRequiredCount',
-            label: 'مطلوب الاستلام',
+            label: OrderStatusTexts.assigned,
             color: CourierOrderStatus.assigned.color,
             isDark: isDark,
           ),
@@ -143,7 +144,7 @@ class _OrdersSummaryCard extends StatelessWidget {
           _SummaryPill(
             icon: AppIcons.money_3,
             value: AppCurrency.format(totalValue),
-            label: 'القيمة',
+            label: OrdersTexts.value,
             color: AppColors.success,
             isDark: isDark,
           ),
@@ -250,7 +251,7 @@ class _EmptyOrdersState extends StatelessWidget {
           Icon(AppIcons.filter_search, size: 30, color: iconColor),
           const SizedBox(height: 10),
           Text(
-            'لا توجد طلبات نشطة حاليًا',
+            OrdersTexts.empty,
             style: Theme.of(
               context,
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
