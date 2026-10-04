@@ -339,6 +339,8 @@ abstract final class NotificationTexts {
 
 /// حساب الطيار والإعدادات.
 abstract final class ProfileTexts {
+  static const allCities = 'كل المدن';
+  static const unlimitedOrders = 'غير محدود';
   static const title = 'حساب الطيار';
   static const subtitle = 'بيانات التشغيل والحساب';
   static const activeOrders = 'طلبات نشطة';

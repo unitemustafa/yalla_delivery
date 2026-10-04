@@ -73,6 +73,7 @@ class CourierProfile {
     this.serviceCityName,
     this.maxActiveOrders,
     this.isAvailable,
+    this.isShippingCompany = false,
   });
 
   final String? vehicleType;
@@ -81,8 +82,10 @@ class CourierProfile {
   final String? serviceCityName;
   final int? maxActiveOrders;
   final bool? isAvailable;
+  final bool isShippingCompany;
 
   String get serviceCityLabel {
+    if (isShippingCompany) return ProfileTexts.allCities;
     final value = serviceCityName?.trim();
     return value == null || value.isEmpty
         ? ProfileTexts.serviceCityUnspecified
@@ -109,7 +112,7 @@ class CourierProfile {
 
   String get maxActiveOrdersLabel {
     final value = maxActiveOrders;
-    return value == null ? CommonTexts.unspecified : '$value';
+    return value == null ? ProfileTexts.unlimitedOrders : '$value';
   }
 
   factory CourierProfile.fromJson(Map<String, dynamic> json) {
@@ -119,6 +122,7 @@ class CourierProfile {
       serviceCity: json['service_city'],
       serviceCityName: _string(json['service_city_name']),
       maxActiveOrders: _int(json['max_active_orders']),
+      isShippingCompany: json['is_shipping_company'] == true,
       isAvailable: json['is_available'] is bool
           ? json['is_available'] as bool
           : null,

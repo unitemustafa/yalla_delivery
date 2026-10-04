@@ -332,7 +332,7 @@ class _LoginViewState extends State<LoginView> {
                               height: 74,
                               padding: const EdgeInsets.all(5),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF0D3B75),
+                                color: const Color(0xFF0C4677),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
                                   color: surfaceColor,
@@ -341,7 +341,7 @@ class _LoginViewState extends State<LoginView> {
                                 boxShadow: [
                                   BoxShadow(
                                     color: const Color(
-                                      0xFF0D3B75,
+                                      0xFF0C4677,
                                     ).withValues(alpha: 0.35),
                                     blurRadius: 14,
                                     offset: const Offset(0, 4),
