@@ -28,7 +28,6 @@ void main() {
       'windows/runner/Runner.rc',
       'windows/runner/main.cpp',
       'README.md',
-      'docs/RELEASE_CHECKLIST.md',
     ];
 
     for (final path in brandedFiles) {

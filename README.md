@@ -122,9 +122,8 @@ flutter build ipa --release \
   --dart-define-from-file=env/production.json
 ```
 
-See [ios/README_RELEASE.md](ios/README_RELEASE.md) for signing, Firebase, APNs,
-and TestFlight setup. The full production checklist is available in
-[docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md).
+Configure signing, Firebase, and APNs on a Mac with Xcode before distributing
+the app through TestFlight.
 
 ## Authentication Sessions
 
