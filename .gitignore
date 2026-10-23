@@ -48,3 +48,6 @@ app.*.map.json
 # Android release signing
 android/key.properties
 *.jks
+
+# Firebase iOS configuration is supplied per deployment.
+/ios/Runner/GoogleService-Info.plist

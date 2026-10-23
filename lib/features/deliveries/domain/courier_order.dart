@@ -273,6 +273,7 @@ class CourierOrder {
       formattedAddress,
       street,
       buildingName,
+      _clean(address?['company_name']),
       apartmentNumber,
       floor,
       details,

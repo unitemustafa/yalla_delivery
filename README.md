@@ -76,8 +76,9 @@ creating a release build:
 - Android: `android/app/google-services.json`
 - iOS: `ios/Runner/GoogleService-Info.plist`
 
-The application can still start during local development when Firebase is not
-configured, but push notifications and Crashlytics will be unavailable.
+The iOS Runner target bundles this file, so supply it before an iOS debug or
+release build. Use the configuration for `com.yallamarket.yallaHome`, not the
+customer app. The file is ignored by Git.
 
 ## Quality Checks
 
@@ -116,6 +117,12 @@ Crashlytics stack traces can be decoded.
 An iOS release requires the Firebase configuration and a valid Apple
 Development Team:
 
+- Minimum supported iOS version: **15.0**, matching the Firebase Apple SDK.
+- Add `ios/Runner/GoogleService-Info.plist` for `com.yallamarket.yallaHome`.
+- In Xcode, select the Runner signing team and configure provisioning with
+  Push Notifications, Remote notifications, and Keychain Sharing enabled.
+- Upload the matching APNs authentication key in Firebase Cloud Messaging.
+
 ```bash
 dart run tool/release_preflight.dart env/production.json --platform=ios
 flutter build ipa --release \
@@ -124,6 +131,11 @@ flutter build ipa --release \
 
 Configure signing, Firebase, and APNs on a Mac with Xcode before distributing
 the app through TestFlight.
+
+Verify a fresh installation on a real iPhone: allow and deny notifications,
+check pushes in foreground/background and after reopening, verify remembered
+login after a restart, and test delivery confirmation with camera permission
+both granted and denied. Windows tests do not validate native iOS builds.
 
 ## Authentication Sessions
 

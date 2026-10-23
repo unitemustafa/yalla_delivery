@@ -6,10 +6,12 @@ import 'package:flutter/material.dart';
 
 import 'core/auth/auth_session.dart';
 import 'core/notifications/courier_push_service.dart';
+import 'core/platform/android_display_mode.dart';
 import 'yalla_home_app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await configureAndroidDisplayMode();
 
   // Fail immediately if a release build was created without
   // the production backend URL.

@@ -9,6 +9,7 @@ import 'core/texts/app_texts.dart';
 import 'core/auth/password_changed_notifier.dart';
 import 'core/auth/session_expired_notifier.dart';
 import 'core/presentation/widgets/offline_connection_banner.dart';
+import 'core/presentation/widgets/layouts/android_tablet_viewport.dart';
 import 'core/presentation/widgets/snackbars/custom_snackbar.dart';
 import 'core/notifications/courier_push_service.dart';
 import 'core/routing/app_navigator.dart';
@@ -256,10 +257,12 @@ class _YallaHomeAppState extends State<YallaHomeApp> {
             GlobalWidgetsLocalizations.delegate,
           ],
           builder: (context, child) {
-            return Directionality(
-              textDirection: TextDirection.rtl,
-              child: OfflineConnectionBanner(
-                child: child ?? const SizedBox.shrink(),
+            return AndroidTabletViewport(
+              child: Directionality(
+                textDirection: TextDirection.rtl,
+                child: OfflineConnectionBanner(
+                  child: child ?? const SizedBox.shrink(),
+                ),
               ),
             );
           },

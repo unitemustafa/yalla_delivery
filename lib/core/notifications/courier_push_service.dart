@@ -10,6 +10,7 @@ import '../auth/auth_session.dart';
 import '../texts/app_texts.dart';
 import '../routing/app_navigator.dart';
 import '../network/api_exception.dart';
+import 'fcm_registration_token_provider.dart';
 
 const courierOrdersChannelId = 'courier_orders';
 const accountUpdatesChannelId = 'account_updates';
@@ -61,6 +62,7 @@ class CourierPushService {
   static final instance = CourierPushService._();
 
   final _local = FlutterLocalNotificationsPlugin();
+  final _registrationTokenProvider = FcmRegistrationTokenProvider();
   final _events = StreamController<CourierPushEvent>.broadcast();
   final List<CourierPushEvent> _pendingOpenedEvents = [];
   final Map<String, DateTime> _handled = {};
@@ -171,7 +173,9 @@ class CourierPushService {
         return;
       }
       if (!await _ensureNotificationPermission()) return;
-      final token = await FirebaseMessaging.instance.getToken();
+      final token = await _registrationTokenProvider.getToken(
+        isActive: () => version == AuthSession.instance.sessionVersion,
+      );
       if (version != AuthSession.instance.sessionVersion) return;
       if (token == null || token.isEmpty) {
         _scheduleRegistrationRetry(version);
@@ -247,7 +251,9 @@ class CourierPushService {
     try {
       final token =
           _registeredToken ??
-          (_firebaseReady ? await FirebaseMessaging.instance.getToken() : null);
+          (_firebaseReady
+              ? await _registrationTokenProvider.getToken(waitForApns: false)
+              : null);
       if (token == null || version != AuthSession.instance.sessionVersion) {
         return;
       }
