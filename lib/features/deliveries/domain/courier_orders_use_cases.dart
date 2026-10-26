@@ -7,6 +7,38 @@ class LoadActiveCourierOrders {
   const LoadActiveCourierOrders(this._repository);
   final CourierOrdersRepository _repository;
   Future<ApiResult<List<CourierOrder>>> call() => _repository.loadActive();
+  Future<ApiResult<CourierOrderPage>> page({int page = 1}) async {
+    final repository = _repository;
+    if (repository is PagedCourierOrdersRepository) {
+      return (repository as PagedCourierOrdersRepository).loadActivePage(
+        page: page,
+      );
+    }
+    final result = await call();
+    return switch (result) {
+      ApiSuccess(:final data) => ApiSuccess(
+        CourierOrderPage(
+          orders: data,
+          hasNext: false,
+          totals: CourierOrderTotals(
+            count: data.length,
+            pickupRequiredCount: data
+                .where((order) => order.requiresPickup)
+                .length,
+            value: data.fold(0, (sum, order) => sum + order.total),
+            deliveryFees: data.fold(
+              0,
+              (sum, order) => sum + (order.deliveryPrice ?? 0),
+            ),
+          ),
+        ),
+      ),
+      ApiFailure(:final reason, :final message) => ApiFailure(
+        reason,
+        message: message,
+      ),
+    };
+  }
 }
 
 class LoadCourierHistory {

@@ -10,6 +10,7 @@ import 'package:yalla_home/features/deliveries/presentation/controllers/courier_
 
 class _Api extends CourierOrdersApi {
   final pages = <int>[];
+  final ranges = <DateTime?>[];
   bool failNextPage = false;
   Completer<CourierOrderPage>? pending;
   @override
@@ -19,6 +20,7 @@ class _Api extends CourierOrdersApi {
     DateTime? before,
   }) async {
     pages.add(page);
+    ranges.add(from);
     if (pending != null) return pending!.future;
     if (page == 2 && failNextPage) throw const ApiException('offline');
     return CourierOrderPage(
@@ -44,6 +46,40 @@ CourierOrdersCubit _cubit(_Api api) {
 }
 
 void main() {
+  test('history refresh preserves already loaded pages', () async {
+    final api = _Api();
+    final cubit = _cubit(api);
+    addTearDown(cubit.close);
+    await cubit.refreshHistory();
+    await cubit.loadMoreHistory();
+    await cubit.refreshHistory();
+    expect(api.pages, [1, 2, 1, 2]);
+    expect(cubit.state.history.map((order) => order.id), ['1', '2']);
+  });
+  test(
+    'history invalidation while loading revalidates the most recent range',
+    () async {
+      final api = _Api()..pending = Completer<CourierOrderPage>();
+      final cubit = _cubit(api);
+      addTearDown(cubit.close);
+      final firstRange = DateTime.utc(2030);
+      final nextRange = DateTime.utc(2030, 2);
+      final initial = cubit.refreshHistory(from: firstRange);
+      final updated = cubit.refreshHistory(from: nextRange);
+      api.pending!.complete(
+        const CourierOrderPage(
+          orders: [],
+          hasNext: false,
+          totals: CourierOrderTotals(count: 0, value: 0, deliveryFees: 0),
+        ),
+      );
+      api.pending = null;
+      await Future.wait([initial, updated]);
+      expect(api.ranges, [firstRange, nextRange]);
+      expect(cubit.state.history.single.id, '1');
+      expect(cubit.state.loadingHistory, isFalse);
+    },
+  );
   test(
     'history appends next page while aggregates remain server totals',
     () async {

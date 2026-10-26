@@ -224,6 +224,10 @@ void _registerDeliveryTests() {
     await tester.tap(find.byKey(const ValueKey('market-pickup-11')));
     await tester.pumpAndSettle();
     expect(pickedUpCount, 1);
+    await tester.scrollUntilVisible(
+      find.text('تم استلام منتجات 1 من 2 محلات'),
+      -180,
+    );
     expect(find.text('تم استلام منتجات 1 من 2 محلات'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('market-pickup-12')),
@@ -234,6 +238,10 @@ void _registerDeliveryTests() {
     await tester.tap(find.byKey(const ValueKey('market-pickup-12')));
     await tester.pumpAndSettle();
     expect(pickedUpCount, 2);
+    await tester.scrollUntilVisible(
+      find.text('تم استلام منتجات 2 من 2 محلات'),
+      -180,
+    );
     expect(find.text('تم استلام منتجات 2 من 2 محلات'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('تأكيد استلام الطلب'), 180);
     await tester.ensureVisible(find.text('تأكيد استلام الطلب'));
@@ -542,10 +550,30 @@ void _registerDeliveryTests() {
       'lib/features/deliveries/presentation/views/order_contact_options_part.dart',
     ]);
 
-    expect(source, contains('label: const Text(OrderDetailsTexts.contact)'));
-    expect(source, contains('onPressed: () => _showContactOptions(context)'));
-    expect(source, contains('onPressed: () => _openCustomerMap(context)'));
-    expect(source, contains('label: const Text(OrderDetailsTexts.map)'));
+    expect(
+      RegExp(
+        r'label:\s*const Text\(\s*OrderDetailsTexts.contact,?\s*\)',
+      ).hasMatch(source),
+      isTrue,
+    );
+    expect(
+      RegExp(
+        r'onPressed:\s*\(\) =>\s*_showContactOptions\(context\)',
+      ).hasMatch(source),
+      isTrue,
+    );
+    expect(
+      RegExp(
+        r'onPressed:\s*\(\) =>\s*_openCustomerMap\(context\)',
+      ).hasMatch(source),
+      isTrue,
+    );
+    expect(
+      RegExp(
+        r'label:\s*const Text\(\s*OrderDetailsTexts.map,?\s*\)',
+      ).hasMatch(source),
+      isTrue,
+    );
     expect(source, contains("Uri.https('www.google.com', '/maps/dir/'"));
     expect(source, contains("'destination': query"));
     expect(source, contains("'travelmode': 'driving'"));
@@ -681,7 +709,7 @@ void _registerDeliveryTests() {
     expect(source, contains('order.deliveryProof'));
     expect(source, contains('order.deliveryProofUrl'));
     expect(source, contains('NetworkImageOrPlaceholder'));
-    expect(source, contains('Image.memory'));
+    expect(source, contains('LayoutMemoryImage'));
   });
 
   testWidgets('network image placeholder accepts unconstrained width', (

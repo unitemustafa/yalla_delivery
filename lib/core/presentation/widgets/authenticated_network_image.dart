@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../../auth/auth_session.dart';
+import 'layout_memory_image.dart';
 
 typedef AuthenticatedImageLoader = Future<Uint8List> Function(String url);
 
@@ -67,14 +68,13 @@ class _AuthenticatedNetworkImageState extends State<AuthenticatedNetworkImage> {
       future: future,
       builder: (context, snapshot) {
         if (snapshot.hasData && snapshot.data!.isNotEmpty) {
-          return Image.memory(
-            snapshot.data!,
+          return LayoutMemoryImage(
+            bytes: snapshot.data!,
             width: widget.width,
             height: widget.height,
             fit: widget.fit,
             alignment: widget.alignment,
             semanticLabel: widget.semanticLabel,
-            gaplessPlayback: true,
             errorBuilder: (_, _, _) => _placeholder(),
           );
         }

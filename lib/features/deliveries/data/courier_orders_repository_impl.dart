@@ -6,7 +6,8 @@ import '../domain/courier_order_page.dart';
 import '../domain/courier_orders_repository.dart';
 import 'courier_orders_api.dart';
 
-class CourierOrdersRepositoryImpl implements CourierOrdersRepository {
+class CourierOrdersRepositoryImpl
+    implements CourierOrdersRepository, PagedCourierOrdersRepository {
   const CourierOrdersRepositoryImpl(this._api);
   final CourierOrdersApi _api;
 
@@ -36,6 +37,9 @@ class CourierOrdersRepositoryImpl implements CourierOrdersRepository {
   @override
   Future<ApiResult<List<CourierOrder>>> loadActive() =>
       _result(_api.loadOrders);
+  @override
+  Future<ApiResult<CourierOrderPage>> loadActivePage({int page = 1}) =>
+      _result(() => _api.loadActivePage(page: page));
   @override
   Future<ApiResult<CourierOrderPage>> loadHistory({
     int page = 1,

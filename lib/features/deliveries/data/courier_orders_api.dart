@@ -21,6 +21,9 @@ class CourierOrdersApi {
     }
   }
 
+  Future<CourierOrderPage> loadActivePage({int page = 1}) =>
+      _loadPage('scope=active&page=$page&page_size=30');
+
   Future<CourierOrderPage> loadHistoryPage({
     int page = 1,
     DateTime? from,
@@ -57,6 +60,9 @@ class CourierOrdersApi {
         count: int.parse(summary['count'].toString()),
         value: double.parse(summary['total_value'].toString()),
         deliveryFees: double.parse(summary['total_delivery_fees'].toString()),
+        pickupRequiredCount: summary['pickup_required_count'] == null
+            ? null
+            : int.parse(summary['pickup_required_count'].toString()),
       ),
     );
   }

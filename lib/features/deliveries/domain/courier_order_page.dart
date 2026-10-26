@@ -5,10 +5,12 @@ class CourierOrderTotals {
     required this.count,
     required this.value,
     required this.deliveryFees,
+    this.pickupRequiredCount,
   });
   final int count;
   final double value;
   final double deliveryFees;
+  final int? pickupRequiredCount;
 }
 
 class CourierOrderPage {

@@ -8,7 +8,6 @@ import '../../../../core/auth/auth_session.dart';
 import '../../../../core/icons/app_icons.dart';
 import '../../../../core/notifications/courier_push_service.dart';
 import '../../../../core/routing/app_routes.dart';
-import '../../data/courier_notifications_api.dart';
 import '../../../../core/di/courier_orders_factory.dart';
 import '../controllers/courier_order_actions_cubit.dart';
 import '../controllers/courier_orders_cubit.dart';
@@ -35,8 +34,8 @@ class _CourierShellViewState extends State<CourierShellView>
   final _actions = courierDependency<CourierOrderActionsCubit>();
   final _ordersCubit = courierDependency<CourierOrdersCubit>();
   StreamSubscription<CourierOrdersState>? _ordersSubscription;
-  final _notificationsApi = const CourierNotificationsApi();
-  final _notificationsController = CourierNotificationsController();
+  final _notificationsController =
+      courierDependency<CourierNotificationsController>();
   final _profileController = CourierProfileController();
   List<CourierOrder> get _orders => _ordersCubit.state.active;
   bool get _loading => _ordersCubit.state.loading && _orders.isEmpty;
@@ -46,7 +45,6 @@ class _CourierShellViewState extends State<CourierShellView>
   StreamSubscription<CourierPushEvent>? _pushSubscription;
   Timer? _pushRefreshDebounce;
   bool _refreshingRemoteState = false;
-  Future<void>? _ordersLoadInFlight;
 
   @override
   void initState() {
@@ -100,7 +98,7 @@ class _CourierShellViewState extends State<CourierShellView>
     try {
       await AuthSession.instance.validateForForeground();
       await Future.wait([
-        _loadOrders(),
+        _loadOrders(invalidated: true),
         _profileController.refresh(),
         _refreshUnreadNotificationCount(),
       ]);
@@ -125,7 +123,7 @@ class _CourierShellViewState extends State<CourierShellView>
           type == 'courier_availability_changed') {
         unawaited(_profileController.refresh());
       } else {
-        unawaited(_loadOrders());
+        unawaited(_loadOrders(invalidated: true));
       }
       unawaited(_refreshUnreadNotificationCount());
     });
@@ -162,26 +160,12 @@ class _CourierShellViewState extends State<CourierShellView>
     return _ordersCubit.state.history;
   }
 
-  Future<void> _loadOrders() async {
-    final activeLoad = _ordersLoadInFlight;
-    if (activeLoad != null) return activeLoad;
-
-    final loadFuture = _performLoadOrders();
-    _ordersLoadInFlight = loadFuture;
-    try {
-      await loadFuture;
-    } finally {
-      if (identical(_ordersLoadInFlight, loadFuture)) {
-        _ordersLoadInFlight = null;
-      }
-    }
-  }
-
-  Future<void> _performLoadOrders() => _ordersCubit.refreshActive();
+  Future<void> _loadOrders({bool invalidated = false}) =>
+      _ordersCubit.refreshActive(invalidated: invalidated);
 
   Future<void> _refreshOrdersAndUnread() async {
     await Future.wait([
-      _loadOrders(),
+      _loadOrders(invalidated: true),
       _ordersCubit.refreshHistory(),
       _refreshUnreadNotificationCount(),
     ]);
@@ -243,6 +227,12 @@ class _CourierShellViewState extends State<CourierShellView>
     final screens = [
       CourierOrdersView(
         orders: _activeOrders,
+        totals: _ordersCubit.state.activeTotals,
+        hasNext: _ordersCubit.state.hasNextActive,
+        loadingMore:
+            _ordersCubit.state.loadingMoreActive || _ordersCubit.state.loading,
+        moreError: _ordersCubit.state.activeMoreError,
+        onLoadMore: _ordersCubit.loadMoreActive,
         onPickedUp: _markPickedUp,
         onMarketPickedUp: _markMarketPickedUp,
         onDelivered: _markDelivered,
@@ -263,7 +253,8 @@ class _CourierShellViewState extends State<CourierShellView>
       ),
       CourierProfileView(
         controller: _profileController,
-        activeOrders: _activeOrders.length,
+        activeOrders:
+            _ordersCubit.state.activeTotals?.count ?? _activeOrders.length,
         deliveredOrders: _ordersCubit.state.totals?.count ?? 0,
         onActiveOrdersTap: () => setState(() => _selectedIndex = 0),
         onDeliveredSummaryTap: _openDeliveredSummary,
@@ -329,8 +320,8 @@ class _CourierShellViewState extends State<CourierShellView>
   }
 
   Future<void> _openNotifications() async {
-    await _notificationsController.refreshNotifications();
     if (!mounted) return;
+    unawaited(_notificationsController.refreshNotifications());
     await Navigator.push(
       context,
       MaterialPageRoute<void>(
@@ -356,7 +347,8 @@ class _CourierShellViewState extends State<CourierShellView>
 
   Future<void> _refreshUnreadNotificationCount() async {
     try {
-      final count = await _notificationsApi.loadUnreadCount();
+      await _notificationsController.refreshUnreadCount();
+      final count = _notificationsController.unreadCount;
       if (!mounted) return;
       _updateUnreadNotificationCount(count);
     } catch (_) {

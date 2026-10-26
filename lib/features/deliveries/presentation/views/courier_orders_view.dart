@@ -6,6 +6,7 @@ import '../../../../core/formatters/app_currency.dart';
 import '../../../../core/icons/app_icons.dart';
 import '../../../../core/presentation/widgets/page_top_bar.dart';
 import '../../domain/courier_order.dart';
+import '../../domain/courier_order_page.dart';
 import '../extensions/courier_order_status_presentation.dart';
 import '../widgets/courier_notifications_button.dart';
 import '../widgets/order_card.dart';
@@ -15,6 +16,11 @@ class CourierOrdersView extends StatefulWidget {
   const CourierOrdersView({
     super.key,
     required this.orders,
+    this.totals,
+    this.hasNext = false,
+    this.loadingMore = false,
+    this.moreError,
+    this.onLoadMore,
     required this.onPickedUp,
     this.onMarketPickedUp,
     required this.onDelivered,
@@ -24,6 +30,10 @@ class CourierOrdersView extends StatefulWidget {
   });
 
   final List<CourierOrder> orders;
+  final CourierOrderTotals? totals;
+  final bool hasNext, loadingMore;
+  final String? moreError;
+  final Future<void> Function()? onLoadMore;
   final OrderPickedUpHandler onPickedUp;
   final MarketPickedUpHandler? onMarketPickedUp;
   final OrderDeliveredHandler onDelivered;
@@ -45,7 +55,9 @@ class _CourierOrdersViewState extends State<CourierOrdersView> {
       child: ListView.separated(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-        itemCount: orders.isEmpty ? 3 : orders.length + 2,
+        itemCount:
+            (orders.isEmpty ? 3 : orders.length + 2) +
+            (widget.hasNext || widget.moreError != null ? 1 : 0),
         separatorBuilder: (context, index) => const SizedBox(height: 12),
         itemBuilder: (context, index) {
           if (index == 0) {
@@ -62,9 +74,28 @@ class _CourierOrdersViewState extends State<CourierOrdersView> {
           }
 
           if (index == 1) {
-            return _OrdersSummaryCard(orders: widget.orders);
+            return _OrdersSummaryCard(
+              orders: widget.orders,
+              totals: widget.totals,
+            );
           }
 
+          if (index == (orders.isEmpty ? 3 : orders.length + 2)) {
+            return Column(
+              children: [
+                if (widget.moreError != null) Text(widget.moreError!),
+                TextButton(
+                  key: const ValueKey('courier_active_load_more'),
+                  onPressed: widget.loadingMore ? null : widget.onLoadMore,
+                  child: Text(
+                    widget.loadingMore
+                        ? DeliveredTexts.loading
+                        : DeliveredTexts.loadMore,
+                  ),
+                ),
+              ],
+            );
+          }
           if (orders.isEmpty) {
             return const _EmptyOrdersState();
           }
@@ -92,23 +123,23 @@ class _CourierOrdersViewState extends State<CourierOrdersView> {
 }
 
 class _OrdersSummaryCard extends StatelessWidget {
-  const _OrdersSummaryCard({required this.orders});
+  const _OrdersSummaryCard({required this.orders, this.totals});
 
   final List<CourierOrder> orders;
+  final CourierOrderTotals? totals;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final activeCount = orders
-        .where((order) => order.isActiveCourierOrder)
-        .length;
-    final pickupRequiredCount = orders
-        .where((order) => order.requiresPickup)
-        .length;
-    final totalValue = orders.fold<double>(
-      0,
-      (total, order) => total + order.total,
-    );
+    final activeCount =
+        totals?.count ??
+        orders.where((order) => order.isActiveCourierOrder).length;
+    final pickupRequiredCount = totals == null
+        ? orders.where((order) => order.requiresPickup).length
+        : totals!.pickupRequiredCount;
+    final totalValue =
+        totals?.value ??
+        orders.fold<double>(0, (total, order) => total + order.total);
 
     return Container(
       padding: const EdgeInsets.all(10),
@@ -135,7 +166,7 @@ class _OrdersSummaryCard extends StatelessWidget {
           const SizedBox(width: 8),
           _SummaryPill(
             icon: AppIcons.box,
-            value: '$pickupRequiredCount',
+            value: pickupRequiredCount == null ? '—' : '$pickupRequiredCount',
             label: OrderStatusTexts.assigned,
             color: CourierOrderStatus.assigned.color,
             isDark: isDark,

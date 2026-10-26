@@ -2,6 +2,10 @@ import '../../../core/domain/api_result.dart';
 import 'courier_order.dart';
 import 'courier_order_page.dart';
 
+abstract interface class PagedCourierOrdersRepository {
+  Future<ApiResult<CourierOrderPage>> loadActivePage({int page = 1});
+}
+
 abstract interface class CourierOrdersRepository {
   Future<ApiResult<List<CourierOrder>>> loadActive();
   Future<ApiResult<CourierOrderPage>> loadHistory({

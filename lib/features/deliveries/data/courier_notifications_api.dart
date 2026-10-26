@@ -1,18 +1,46 @@
 import '../../../core/auth/auth_session.dart';
 import '../domain/courier_notification.dart';
+import '../domain/courier_notification_page.dart';
 
 class CourierNotificationsApi {
-  const CourierNotificationsApi();
+  const CourierNotificationsApi({AuthSession? session}) : _session = session;
+  final AuthSession? _session;
+  AuthSession get session => _session ?? AuthSession.instance;
+
+  Future<CourierNotificationPage> loadPage({int page = 1}) async {
+    if (page < 1) throw const FormatException('Invalid page.');
+    final data = await session.getJson(
+      'notifications/?page=$page&page_size=30',
+    );
+    if (data is! Map ||
+        data['results'] is! List ||
+        data['count'] is! int ||
+        data['unread_count'] is! int ||
+        (data['count'] as int) < 0 ||
+        (data['unread_count'] as int) < 0 ||
+        (data['results'] as List).length > 30) {
+      throw const FormatException('Invalid notification page.');
+    }
+    final items = parseNotificationsResponse(data);
+    if (items.length != (data['results'] as List).length ||
+        items.map((item) => item.id).toSet().length != items.length) {
+      throw const FormatException('Invalid notification rows.');
+    }
+    return CourierNotificationPage(
+      items: List.unmodifiable(items),
+      count: data['count'] as int,
+      unreadCount: data['unread_count'] as int,
+      hasNext: data['next'] != null,
+    );
+  }
 
   Future<List<CourierNotification>> loadNotifications() async {
-    final data = await AuthSession.instance.getJson('notifications/');
+    final data = await session.getJson('notifications/');
     return parseNotificationsResponse(data);
   }
 
   Future<int> loadUnreadCount() async {
-    final data = await AuthSession.instance.getJson(
-      'notifications/unread-count/',
-    );
+    final data = await session.getJson('notifications/unread-count/');
     return parseUnreadCountResponse(data);
   }
 
@@ -20,7 +48,7 @@ class CourierNotificationsApi {
     String notificationId, {
     CourierNotification? current,
   }) async {
-    final data = await AuthSession.instance.patchJson(
+    final data = await session.patchJson(
       'notifications/$notificationId/read/',
       const <String, dynamic>{},
     );
@@ -42,7 +70,7 @@ class CourierNotificationsApi {
   }
 
   Future<int> markAllRead() async {
-    final data = await AuthSession.instance.postJson(
+    final data = await session.postJson(
       'notifications/mark-all-read/',
       const <String, dynamic>{},
     );
@@ -53,7 +81,7 @@ class CourierNotificationsApi {
   }
 
   Future<void> deleteNotification(String notificationId) async {
-    await AuthSession.instance.deleteJson('notifications/$notificationId/');
+    await session.deleteJson('notifications/$notificationId/');
   }
 
   static List<CourierNotification> parseNotificationsResponse(dynamic data) {

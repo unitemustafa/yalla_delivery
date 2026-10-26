@@ -10,6 +10,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/formatters/app_currency.dart';
 import '../../../../core/icons/app_icons.dart';
 import '../../../../core/notifications/courier_push_service.dart';
+import '../../../../core/presentation/widgets/layout_memory_image.dart';
 import '../../../../core/presentation/widgets/app_action_button.dart';
 import '../../../../core/presentation/widgets/authenticated_network_image.dart';
 import '../../../../core/presentation/widgets/network_image_or_placeholder.dart';
@@ -297,142 +298,187 @@ class _OrderDetailsViewState extends State<OrderDetailsView> {
             ? const Center(child: CircularProgressIndicator())
             : _error != null
             ? _DetailRetryState(error: _error!, onRetry: _loadDetails)
-            : ListView(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-                children: [
-                  PageTopBar(
-                    title: OrderDetailsTexts.title,
-                    subtitle: order.id,
-                    showBackButton: true,
-                  ),
-                  const SizedBox(height: 14),
-                  _OrderHeader(order: order, mutedColor: mutedColor),
-                  const SizedBox(height: 12),
-                  _SectionCard(
-                    title: OrderDetailsTexts.customerData,
-                    children: [
-                      _CustomerSummaryTile(
-                        order: order,
-                        mutedColor: mutedColor,
-                      ),
-                      if (order.addressLabel != null)
-                        _DetailRow(
-                          icon: AppIcons.location,
-                          label: OrderDetailsTexts.addressName,
-                          value: order.addressLabel!,
-                          mutedColor: mutedColor,
+            : CustomScrollView(
+                slivers: [
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                    sliver: SliverMainAxisGroup(
+                      slivers: [
+                        SliverToBoxAdapter(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              PageTopBar(
+                                title: OrderDetailsTexts.title,
+                                subtitle: order.id,
+                                showBackButton: true,
+                              ),
+                              const SizedBox(height: 14),
+                              _OrderHeader(
+                                order: order,
+                                mutedColor: mutedColor,
+                              ),
+                              const SizedBox(height: 12),
+                              _SectionCard(
+                                title: OrderDetailsTexts.customerData,
+                                children: [
+                                  _CustomerSummaryTile(
+                                    order: order,
+                                    mutedColor: mutedColor,
+                                  ),
+                                  if (order.addressLabel != null)
+                                    _DetailRow(
+                                      icon: AppIcons.location,
+                                      label: OrderDetailsTexts.addressName,
+                                      value: order.addressLabel!,
+                                      mutedColor: mutedColor,
+                                    ),
+                                  _ExpandableAddressRow(address: order.address),
+                                  if (order.deliveryAreaName != null)
+                                    _DetailRow(
+                                      icon: AppIcons.location,
+                                      label: OrderDetailsTexts.area,
+                                      value: order.deliveryAreaName!,
+                                      mutedColor: mutedColor,
+                                    ),
+                                  if (order.serviceCityName != null)
+                                    _DetailRow(
+                                      icon: AppIcons.location,
+                                      label: OrderDetailsTexts.city,
+                                      value: order.serviceCityName!,
+                                      mutedColor: mutedColor,
+                                    ),
+                                  _DetailRow(
+                                    icon: AppIcons.shopping_bag,
+                                    label: OrderDetailsTexts.market,
+                                    value: order.marketSummary,
+                                    mutedColor: mutedColor,
+                                  ),
+                                  if (order.marketCount > 1)
+                                    _DetailRow(
+                                      icon: AppIcons.box,
+                                      label: OrderDetailsTexts.marketCount,
+                                      value: '${order.marketCount}',
+                                      mutedColor: mutedColor,
+                                    ),
+                                  if (order.customerNotes != null)
+                                    _DetailRow(
+                                      icon: AppIcons.document_text,
+                                      label: OrderDetailsTexts.customerNote,
+                                      value: order.customerNotes!,
+                                      mutedColor: mutedColor,
+                                      copyable: true,
+                                    ),
+                                  if (order.addressInstructions != null)
+                                    _DetailRow(
+                                      icon: AppIcons.info_circle,
+                                      label:
+                                          OrderDetailsTexts.addressInstructions,
+                                      value: order.addressInstructions!,
+                                      mutedColor: mutedColor,
+                                      copyable: true,
+                                    ),
+                                ],
+                              ),
+                              if (order.orderImageUrl != null) ...[
+                                const SizedBox(height: 12),
+                                _OrderRequestImageCard(
+                                  order: order,
+                                  mutedColor: mutedColor,
+                                ),
+                              ],
+                              const SizedBox(height: 12),
+                            ],
+                          ),
                         ),
-                      _ExpandableAddressRow(address: order.address),
-                      if (order.deliveryAreaName != null)
-                        _DetailRow(
-                          icon: AppIcons.location,
-                          label: OrderDetailsTexts.area,
-                          value: order.deliveryAreaName!,
+                        _ProductsByMarket(
+                          order: order,
                           mutedColor: mutedColor,
+                          pickingUpSectionId: _pickingUpSectionId,
+                          isUpdatingOrder: _submittingAction != null,
+                          onMarketPickupPressed: _markMarketPickedUp,
                         ),
-                      if (order.serviceCityName != null)
-                        _DetailRow(
-                          icon: AppIcons.location,
-                          label: OrderDetailsTexts.city,
-                          value: order.serviceCityName!,
-                          mutedColor: mutedColor,
+                        SliverToBoxAdapter(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (order.offers.isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                _SectionCard(
+                                  title: OrderDetailsTexts.addedOffers,
+                                  children: [
+                                    for (final offer in order.offers)
+                                      _OfferRow(offer: offer),
+                                  ],
+                                ),
+                              ],
+                              const SizedBox(height: 12),
+                              _OrderSummaryCard(
+                                order: order,
+                                mutedColor: mutedColor,
+                              ),
+                              if (order.isDelivered) ...[
+                                const SizedBox(height: 12),
+                                _DeliveryProofCard(
+                                  order: order,
+                                  mutedColor: mutedColor,
+                                ),
+                              ],
+                              const SizedBox(height: 16),
+                              if (order.phone.isNotEmpty || _hasMapDestination)
+                                Row(
+                                  children: [
+                                    if (order.phone.isNotEmpty)
+                                      Expanded(
+                                        child: OutlinedButton.icon(
+                                          onPressed: () =>
+                                              _showContactOptions(context),
+                                          icon: const Icon(
+                                            AppIcons.call,
+                                            size: 18,
+                                          ),
+                                          label: const Text(
+                                            OrderDetailsTexts.contact,
+                                          ),
+                                        ),
+                                      ),
+                                    if (order.phone.isNotEmpty &&
+                                        _hasMapDestination)
+                                      const SizedBox(width: 10),
+                                    if (_hasMapDestination)
+                                      Expanded(
+                                        child: OutlinedButton.icon(
+                                          onPressed: () =>
+                                              _openCustomerMap(context),
+                                          icon: const Icon(
+                                            AppIcons.routing,
+                                            size: 18,
+                                          ),
+                                          label: const Text(
+                                            OrderDetailsTexts.map,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              if (order.canMarkPickedUp ||
+                                  order.canMarkDelivered) ...[
+                                const SizedBox(height: 12),
+                                _LifecycleActions(
+                                  order: order,
+                                  submittingAction: _submittingAction,
+                                  isPickingUpMarket:
+                                      _pickingUpSectionId != null,
+                                  onPickupPressed: _markPickedUp,
+                                  onDeliveryPressed: _confirmDelivery,
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
-                      _DetailRow(
-                        icon: AppIcons.shopping_bag,
-                        label: OrderDetailsTexts.market,
-                        value: order.marketSummary,
-                        mutedColor: mutedColor,
-                      ),
-                      if (order.marketCount > 1)
-                        _DetailRow(
-                          icon: AppIcons.box,
-                          label: OrderDetailsTexts.marketCount,
-                          value: '${order.marketCount}',
-                          mutedColor: mutedColor,
-                        ),
-                      if (order.customerNotes != null)
-                        _DetailRow(
-                          icon: AppIcons.document_text,
-                          label: OrderDetailsTexts.customerNote,
-                          value: order.customerNotes!,
-                          mutedColor: mutedColor,
-                          copyable: true,
-                        ),
-                      if (order.addressInstructions != null)
-                        _DetailRow(
-                          icon: AppIcons.info_circle,
-                          label: OrderDetailsTexts.addressInstructions,
-                          value: order.addressInstructions!,
-                          mutedColor: mutedColor,
-                          copyable: true,
-                        ),
-                    ],
-                  ),
-                  if (order.orderImageUrl != null) ...[
-                    const SizedBox(height: 12),
-                    _OrderRequestImageCard(
-                      order: order,
-                      mutedColor: mutedColor,
-                    ),
-                  ],
-                  const SizedBox(height: 12),
-                  _ProductsByMarket(
-                    order: order,
-                    mutedColor: mutedColor,
-                    pickingUpSectionId: _pickingUpSectionId,
-                    isUpdatingOrder: _submittingAction != null,
-                    onMarketPickupPressed: _markMarketPickedUp,
-                  ),
-                  if (order.offers.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    _SectionCard(
-                      title: OrderDetailsTexts.addedOffers,
-                      children: [
-                        for (final offer in order.offers)
-                          _OfferRow(offer: offer),
                       ],
                     ),
-                  ],
-                  const SizedBox(height: 12),
-                  _OrderSummaryCard(order: order, mutedColor: mutedColor),
-                  if (order.isDelivered) ...[
-                    const SizedBox(height: 12),
-                    _DeliveryProofCard(order: order, mutedColor: mutedColor),
-                  ],
-                  const SizedBox(height: 16),
-                  if (order.phone.isNotEmpty || _hasMapDestination)
-                    Row(
-                      children: [
-                        if (order.phone.isNotEmpty)
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () => _showContactOptions(context),
-                              icon: const Icon(AppIcons.call, size: 18),
-                              label: const Text(OrderDetailsTexts.contact),
-                            ),
-                          ),
-                        if (order.phone.isNotEmpty && _hasMapDestination)
-                          const SizedBox(width: 10),
-                        if (_hasMapDestination)
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () => _openCustomerMap(context),
-                              icon: const Icon(AppIcons.routing, size: 18),
-                              label: const Text(OrderDetailsTexts.map),
-                            ),
-                          ),
-                      ],
-                    ),
-                  if (order.canMarkPickedUp || order.canMarkDelivered) ...[
-                    const SizedBox(height: 12),
-                    _LifecycleActions(
-                      order: order,
-                      submittingAction: _submittingAction,
-                      isPickingUpMarket: _pickingUpSectionId != null,
-                      onPickupPressed: _markPickedUp,
-                      onDeliveryPressed: _confirmDelivery,
-                    ),
-                  ],
+                  ),
                 ],
               ),
       ),

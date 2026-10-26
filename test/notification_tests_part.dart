@@ -86,7 +86,7 @@ void _registerNotificationTests() {
         notifications: [_notification(id: '1', orderId: '123')],
         unreadCount: 1,
       );
-      final controller = CourierNotificationsController(api: api);
+      final controller = _notificationsController(api: api);
       await controller.loadNotifications();
 
       expect(controller.unreadCount, 1);
@@ -103,7 +103,7 @@ void _registerNotificationTests() {
       notifications: [_notification(id: '1', orderId: '123')],
       unreadCount: 1,
     )..markAllError = Exception('backend failed');
-    final controller = CourierNotificationsController(api: api);
+    final controller = _notificationsController(api: api);
     await controller.loadNotifications();
 
     expect(controller.markAllRead(), throwsException);
@@ -114,7 +114,7 @@ void _registerNotificationTests() {
   test(
     'controller clear prevents cross-courier notification leakage',
     () async {
-      final controller = CourierNotificationsController(
+      final controller = _notificationsController(
         api: _FakeNotificationsApi(
           notifications: [_notification(id: '1', orderId: '123')],
           unreadCount: 1,
@@ -139,13 +139,13 @@ void _registerNotificationTests() {
       notifications: [_notification(id: '1', orderId: '123')],
       unreadCount: 1,
     )..loadCompleter = failedLoad;
-    final controller = CourierNotificationsController(api: api);
+    final controller = _notificationsController(api: api);
 
     await tester.pumpWidget(
       _TestApp(
         child: CourierNotificationsView(
           controller: controller,
-          ordersApi: _FakeOrdersApi(),
+          loadOrder: _loadCourierOrder(_FakeOrdersApi()),
           onOrderTap: (_) {},
           onUnreadCountChanged: (_) {},
         ),
@@ -179,8 +179,8 @@ void _registerNotificationTests() {
     await tester.pumpWidget(
       _TestApp(
         child: CourierNotificationsView(
-          controller: CourierNotificationsController(api: api),
-          ordersApi: _FakeOrdersApi(),
+          controller: _notificationsController(api: api),
+          loadOrder: _loadCourierOrder(_FakeOrdersApi()),
           onOrderTap: (_) {},
           onUnreadCountChanged: (_) {},
         ),
@@ -211,8 +211,8 @@ void _registerNotificationTests() {
     await tester.pumpWidget(
       _TestApp(
         child: CourierNotificationsView(
-          controller: CourierNotificationsController(api: api),
-          ordersApi: _FakeOrdersApi(),
+          controller: _notificationsController(api: api),
+          loadOrder: _loadCourierOrder(_FakeOrdersApi()),
           onOrderTap: (_) {},
           onUnreadCountChanged: (count) => unread = count,
         ),
@@ -240,8 +240,8 @@ void _registerNotificationTests() {
     await tester.pumpWidget(
       _TestApp(
         child: CourierNotificationsView(
-          controller: CourierNotificationsController(api: api),
-          ordersApi: _FakeOrdersApi(),
+          controller: _notificationsController(api: api),
+          loadOrder: _loadCourierOrder(_FakeOrdersApi()),
           onOrderTap: (_) {},
           onUnreadCountChanged: (_) {},
         ),
@@ -274,8 +274,8 @@ void _registerNotificationTests() {
     await tester.pumpWidget(
       _TestApp(
         child: CourierNotificationsView(
-          controller: CourierNotificationsController(api: api),
-          ordersApi: _FakeOrdersApi(),
+          controller: _notificationsController(api: api),
+          loadOrder: _loadCourierOrder(_FakeOrdersApi()),
           onOrderTap: (_) {},
           onUnreadCountChanged: (_) {},
         ),
@@ -326,8 +326,8 @@ void _registerNotificationTests() {
     await tester.pumpWidget(
       _TestApp(
         child: CourierNotificationsView(
-          controller: CourierNotificationsController(api: notificationsApi),
-          ordersApi: ordersApi,
+          controller: _notificationsController(api: notificationsApi),
+          loadOrder: _loadCourierOrder(ordersApi),
           onOrderTap: (order) => opened = order,
           onUnreadCountChanged: (_) {},
         ),
@@ -357,8 +357,8 @@ void _registerNotificationTests() {
     await tester.pumpWidget(
       _TestApp(
         child: CourierNotificationsView(
-          controller: CourierNotificationsController(api: notificationsApi),
-          ordersApi: ordersApi,
+          controller: _notificationsController(api: notificationsApi),
+          loadOrder: _loadCourierOrder(ordersApi),
           onOrderTap: (_) => fail('should not open unavailable order'),
           onUnreadCountChanged: (_) {},
         ),
@@ -450,13 +450,13 @@ void _registerNotificationTests() {
       await tester.pumpWidget(
         _TestApp(
           child: CourierNotificationsView(
-            controller: CourierNotificationsController(
+            controller: _notificationsController(
               api: _FakeNotificationsApi(
                 notifications: [_notification(id: '1', orderId: '123')],
                 unreadCount: 1,
               ),
             ),
-            ordersApi: _FakeOrdersApi(),
+            loadOrder: _loadCourierOrder(_FakeOrdersApi()),
             onOrderTap: (_) {},
             onUnreadCountChanged: (count) => unreadCount = count,
           ),

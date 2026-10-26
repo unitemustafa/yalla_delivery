@@ -1,14 +1,28 @@
 import 'package:get_it/get_it.dart';
+import '../../features/deliveries/data/courier_notifications_api.dart';
+import '../../features/deliveries/data/courier_notifications_repository_impl.dart';
+import '../../features/deliveries/domain/courier_notifications_repository.dart';
+import '../../features/deliveries/domain/courier_notifications_use_cases.dart';
 import '../../features/deliveries/data/courier_orders_api.dart';
 import '../../features/deliveries/data/courier_orders_repository_impl.dart';
 import '../../features/deliveries/domain/courier_orders_repository.dart';
 import '../../features/deliveries/domain/courier_orders_use_cases.dart';
 import '../../features/deliveries/presentation/controllers/courier_order_actions_cubit.dart';
 import '../../features/deliveries/presentation/controllers/courier_orders_cubit.dart';
+import '../../features/deliveries/presentation/controllers/courier_notifications_controller.dart';
 
 void configureCourierOrders() {
   final di = GetIt.instance;
   if (di.isRegistered<CourierOrdersRepository>()) return;
+  di.registerLazySingleton<CourierNotificationsApi>(
+    () => const CourierNotificationsApi(),
+  );
+  di.registerLazySingleton<CourierNotificationsRepository>(
+    () => CourierNotificationsRepositoryImpl(di()),
+  );
+  di.registerLazySingleton<CourierNotificationsUseCases>(
+    () => CourierNotificationsUseCases(di()),
+  );
   di.registerLazySingleton<CourierOrdersApi>(() => const CourierOrdersApi());
   di.registerLazySingleton<CourierOrdersRepository>(
     () => CourierOrdersRepositoryImpl(di()),
@@ -27,6 +41,9 @@ void configureCourierOrders() {
   );
   di.registerFactory<CourierOrderActionsCubit>(
     () => CourierOrderActionsCubit(di(), di(), di(), di()),
+  );
+  di.registerFactory<CourierNotificationsController>(
+    () => CourierNotificationsController(useCases: di()),
   );
   di.registerFactory<CourierOrdersCubit>(() => CourierOrdersCubit(di(), di()));
 }

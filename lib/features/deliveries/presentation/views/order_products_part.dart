@@ -8,148 +8,214 @@ class _ProductsByMarket extends StatelessWidget {
     required this.isUpdatingOrder,
     required this.onMarketPickupPressed,
   });
-
   final CourierOrder order;
   final Color mutedColor;
   final int? pickingUpSectionId;
   final bool isUpdatingOrder;
   final ValueChanged<int> onMarketPickupPressed;
-
   @override
   Widget build(BuildContext context) {
     final groups = order.productGroups;
+    final rows = <({CourierMarketProductGroup group, int index})>[
+      for (final group in groups) ...[
+        (group: group, index: -1),
+        for (var i = 0; i < group.items.length; i++) (group: group, index: i),
+        (group: group, index: -2),
+      ],
+    ];
     final total = order.totalMarketCount;
     final pickedUp = order.pickedUpMarketCount;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return _SectionCard(
-      title: OrderDetailsTexts.products,
-      children: [
-        if (total > 1) ...[
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  OrderDetailsTexts.pickedUpMarkets(pickedUp, total),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: pickedUp == total ? AppColors.success : mutedColor,
-                    fontWeight: FontWeight.w900,
+    return DecoratedSliver(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCardColor : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : Colors.black.withValues(alpha: 0.05),
+        ),
+      ),
+      sliver: SliverPadding(
+        padding: const EdgeInsets.all(14),
+        sliver: SliverMainAxisGroup(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    OrderDetailsTexts.products,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  if (total > 1) ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            OrderDetailsTexts.pickedUpMarkets(pickedUp, total),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: pickedUp == total
+                                      ? AppColors.success
+                                      : mutedColor,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                          ),
+                        ),
+                        Text(
+                          '$pickedUp/$total',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: pickedUp == total
+                                    ? AppColors.success
+                                    : AppColors.primary,
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value: pickedUp / total,
+                      minHeight: 5,
+                      borderRadius: BorderRadius.circular(5),
+                      color: pickedUp == total
+                          ? AppColors.success
+                          : AppColors.primary,
+                      backgroundColor: AppColors.primary.withValues(
+                        alpha: 0.10,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  if (groups.isEmpty)
+                    Text(
+                      OrderDetailsTexts.noProducts,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: mutedColor,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                ],
               ),
+            ),
+            SliverList.builder(
+              itemCount: rows.length,
+              itemBuilder: (context, index) {
+                final row = rows[index];
+                if (row.index == -1) return _groupHeader(context, row.group);
+                if (row.index == -2) {
+                  return _groupFooter(
+                    context,
+                    row.group,
+                    identical(row.group, groups.last),
+                  );
+                }
+                return _ProductRow(item: row.group.items[row.index]);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _groupHeader(BuildContext context, CourierMarketProductGroup group) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+        decoration: BoxDecoration(
+          color: group.isPickedUp
+              ? AppColors.success.withValues(alpha: isDark ? 0.13 : 0.07)
+              : AppColors.primary.withValues(alpha: isDark ? 0.13 : 0.06),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              group.isPickedUp ? AppIcons.tick_circle : AppIcons.shopping_bag,
+              size: 18,
+              color: group.isPickedUp ? AppColors.success : AppColors.primary,
+            ),
+            const SizedBox(width: 7),
+            Expanded(
+              child: Text(
+                group.marketName,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w900),
+              ),
+            ),
+            if (group.isPickedUp)
               Text(
-                '$pickedUp/$total',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: pickedUp == total
-                      ? AppColors.success
-                      : AppColors.primary,
+                OrderStatusTexts.pickedUp,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: AppColors.success,
                   fontWeight: FontWeight.w900,
                 ),
               ),
-            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _groupFooter(
+    BuildContext context,
+    CourierMarketProductGroup group,
+    bool last,
+  ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (group.items.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(
+              OrderDetailsTexts.noMarketProducts,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: mutedColor),
+            ),
+          ),
+        if (order.hasPerMarketPickup &&
+            order.canMarkPickedUp &&
+            !group.isPickedUp &&
+            group.sectionId != null) ...[
+          OutlinedButton.icon(
+            key: ValueKey('market-pickup-${group.sectionId}'),
+            onPressed: !isUpdatingOrder && pickingUpSectionId == null
+                ? () => onMarketPickupPressed(group.sectionId!)
+                : null,
+            icon: pickingUpSectionId == group.sectionId
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(AppIcons.tick_circle, size: 17),
+            label: const Text(OrderDetailsTexts.confirmMarketPickup),
           ),
           const SizedBox(height: 8),
-          LinearProgressIndicator(
-            value: pickedUp / total,
-            minHeight: 5,
-            borderRadius: BorderRadius.circular(5),
-            color: pickedUp == total ? AppColors.success : AppColors.primary,
-            backgroundColor: AppColors.primary.withValues(alpha: 0.10),
-          ),
-          const SizedBox(height: 16),
         ],
-        if (groups.isEmpty)
-          Text(
-            OrderDetailsTexts.noProducts,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: mutedColor,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        for (final group in groups) ...[
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-            decoration: BoxDecoration(
-              color: group.isPickedUp
-                  ? AppColors.success.withValues(alpha: isDark ? 0.13 : 0.07)
-                  : AppColors.primary.withValues(alpha: isDark ? 0.13 : 0.06),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  group.isPickedUp
-                      ? AppIcons.tick_circle
-                      : AppIcons.shopping_bag,
-                  size: 18,
-                  color: group.isPickedUp
-                      ? AppColors.success
-                      : AppColors.primary,
-                ),
-                const SizedBox(width: 7),
-                Expanded(
-                  child: Text(
-                    group.marketName,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                if (group.isPickedUp)
-                  Text(
-                    OrderStatusTexts.pickedUp,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColors.success,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-              ],
-            ),
+        if (!last) ...[
+          const SizedBox(height: 4),
+          Divider(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.10)
+                : Colors.black.withValues(alpha: 0.08),
           ),
           const SizedBox(height: 10),
-          if (group.items.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Text(
-                OrderDetailsTexts.noMarketProducts,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: mutedColor),
-              ),
-            ),
-          for (final item in group.items) _ProductRow(item: item),
-          if (order.hasPerMarketPickup &&
-              order.canMarkPickedUp &&
-              !group.isPickedUp &&
-              group.sectionId != null) ...[
-            OutlinedButton.icon(
-              key: ValueKey('market-pickup-${group.sectionId}'),
-              onPressed: !isUpdatingOrder && pickingUpSectionId == null
-                  ? () => onMarketPickupPressed(group.sectionId!)
-                  : null,
-              icon: pickingUpSectionId == group.sectionId
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(AppIcons.tick_circle, size: 17),
-              label: const Text(OrderDetailsTexts.confirmMarketPickup),
-            ),
-            const SizedBox(height: 8),
-          ],
-          if (group != groups.last) ...[
-            const SizedBox(height: 4),
-            Divider(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.10)
-                  : Colors.black.withValues(alpha: 0.08),
-            ),
-            const SizedBox(height: 10),
-          ],
         ],
       ],
     );
@@ -428,8 +494,8 @@ class _DeliveryProofCard extends StatelessWidget {
         else
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.memory(
-              proof!.bytes,
+            child: LayoutMemoryImage(
+              bytes: proof!.bytes,
               fit: BoxFit.cover,
               width: double.infinity,
               height: 160,

@@ -51,10 +51,10 @@ class _OrdersNotificationsRouteHost extends StatelessWidget {
               builder: (_) => Directionality(
                 textDirection: TextDirection.rtl,
                 child: CourierNotificationsView(
-                  controller: CourierNotificationsController(
+                  controller: _notificationsController(
                     api: _FakeNotificationsApi(),
                   ),
-                  ordersApi: _FakeOrdersApi(),
+                  loadOrder: _loadCourierOrder(_FakeOrdersApi()),
                   onOrderTap: (_) {},
                   onUnreadCountChanged: (_) {},
                 ),
@@ -167,6 +167,16 @@ Map<String, dynamic> _courierAccountJson({
   };
 }
 
+CourierNotificationsController _notificationsController({
+  CourierNotificationsApi api = const CourierNotificationsApi(),
+}) => CourierNotificationsController(
+  useCases: CourierNotificationsUseCases(
+    CourierNotificationsRepositoryImpl(api),
+  ),
+);
+LoadCourierOrder _loadCourierOrder(CourierOrdersApi api) =>
+    LoadCourierOrder(CourierOrdersRepositoryImpl(api));
+
 class _FakeNotificationsApi extends CourierNotificationsApi {
   _FakeNotificationsApi({
     List<CourierNotification>? notifications,
@@ -184,6 +194,17 @@ class _FakeNotificationsApi extends CourierNotificationsApi {
   int markAllCalls = 0;
   final List<String> markReadCalls = [];
   final List<String> deleteCalls = [];
+
+  @override
+  Future<CourierNotificationPage> loadPage({int page = 1}) async {
+    final all = await loadNotifications();
+    return CourierNotificationPage(
+      items: all.skip((page - 1) * 30).take(30).toList(),
+      count: all.length,
+      unreadCount: unreadCount,
+      hasNext: page * 30 < all.length,
+    );
+  }
 
   @override
   Future<List<CourierNotification>> loadNotifications() async {

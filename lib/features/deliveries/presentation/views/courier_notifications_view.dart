@@ -5,7 +5,9 @@ import '../../../../core/texts/app_texts.dart';
 import '../../../../core/icons/app_icons.dart';
 import '../../../../core/presentation/widgets/page_top_bar.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
-import '../../data/courier_orders_api.dart';
+import '../../../../core/domain/api_result.dart';
+import '../../../../core/di/courier_orders_factory.dart';
+import '../../domain/courier_orders_use_cases.dart';
 import '../../domain/courier_notification.dart';
 import '../../domain/courier_order.dart';
 import '../controllers/courier_notifications_controller.dart';
@@ -18,13 +20,13 @@ class CourierNotificationsView extends StatefulWidget {
     required this.onOrderTap,
     required this.onUnreadCountChanged,
     this.controller,
-    this.ordersApi = const CourierOrdersApi(),
+    this.loadOrder,
   });
 
   final ValueChanged<CourierOrder> onOrderTap;
   final ValueChanged<int> onUnreadCountChanged;
   final CourierNotificationsController? controller;
-  final CourierOrdersApi ordersApi;
+  final LoadCourierOrder? loadOrder;
 
   @override
   State<CourierNotificationsView> createState() =>
@@ -33,7 +35,7 @@ class CourierNotificationsView extends StatefulWidget {
 
 class _CourierNotificationsViewState extends State<CourierNotificationsView> {
   late final CourierNotificationsController _controller =
-      widget.controller ?? CourierNotificationsController();
+      widget.controller ?? courierDependency<CourierNotificationsController>();
   late final bool _ownsController = widget.controller == null;
   bool _openingOrder = false;
 
@@ -146,9 +148,17 @@ class _CourierNotificationsViewState extends State<CourierNotificationsView> {
     try {
       final readNotification = await _markReadIfNeeded(notification);
       final id = readNotification.orderId ?? orderId;
-      final order = await widget.ordersApi.loadOrder(id);
+      final result =
+          await (widget.loadOrder ?? courierDependency<LoadCourierOrder>())(id);
       if (!mounted) return;
-      widget.onOrderTap(order);
+      switch (result) {
+        case ApiSuccess(:final data):
+          widget.onOrderTap(data);
+        case ApiFailure():
+          throw const CourierNotificationActionException(
+            NotificationTexts.orderUnavailable,
+          );
+      }
     } catch (_) {
       if (!mounted) return;
       CustomSnackBar.showError(
@@ -165,116 +175,135 @@ class _CourierNotificationsViewState extends State<CourierNotificationsView> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDark
-        ? AppColors.darkBackground
-        : const Color(0xFFF7F8FB);
     final notifications = _controller.notifications;
-    final isInitialLoading =
+    final initialLoading =
         _controller.isLoading &&
         notifications.isEmpty &&
         _controller.errorMessage == null;
-
+    final footer = _controller.hasNext || _controller.moreError != null;
     return ColoredBox(
-      color: backgroundColor,
+      color: isDark ? AppColors.darkBackground : const Color(0xFFF7F8FB),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final maxContentWidth = constraints.maxWidth >= 760
+          final maxWidth = constraints.maxWidth >= 760
               ? 680.0
               : constraints.maxWidth;
-
           return RefreshIndicator(
             onRefresh: _refresh,
-            child: ListView(
+            child: ListView.separated(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-              children: [
-                Center(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: maxContentWidth),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        PageTopBar(
-                          title: NotificationTexts.title,
-                          subtitle: NotificationTexts.subtitle,
-                          showBackButton: true,
-                          backButtonKey: const Key(
-                            'courier_notifications_back_button',
-                          ),
-                          onBackPressed: () => Navigator.maybePop(context),
-                          actions: [
-                            _NotificationActionButton(
-                              key: const Key('courier_notifications_mark_all'),
-                              isDark: isDark,
-                              icon: AppIcons.tick_circle,
-                              tooltip: NotificationTexts.markAllRead,
-                              onPressed:
-                                  _controller.unreadCount == 0 ||
-                                      _controller.isMarkingAllRead
-                                  ? null
-                                  : _markAllRead,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 18),
-                        _NotificationSummary(
-                          isDark: isDark,
-                          unreadCount: _controller.unreadCount,
-                          totalCount: notifications.length,
-                        ),
-                        const SizedBox(height: 22),
-                        if (isInitialLoading)
-                          const _NotificationsLoadingView()
-                        else if (_controller.errorMessage != null &&
-                            notifications.isEmpty)
-                          _NotificationsErrorView(
-                            message: _controller.errorMessage!,
-                            onRetry: _controller.loadNotifications,
-                          )
-                        else if (notifications.isEmpty)
-                          const _EmptyNotificationsView()
-                        else ...[
-                          Text(
-                            CommonTexts.today,
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w900),
-                          ),
-                          const SizedBox(height: 10),
-                          for (final notification in notifications)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: Dismissible(
-                                key: ValueKey(
-                                  'courier_notification_${notification.id}',
-                                ),
-                                direction: DismissDirection.horizontal,
-                                background:
-                                    const _NotificationDismissBackground(
-                                      alignment:
-                                          AlignmentDirectional.centerStart,
-                                    ),
-                                secondaryBackground:
-                                    const _NotificationDismissBackground(
-                                      alignment: AlignmentDirectional.centerEnd,
-                                    ),
-                                confirmDismiss: (_) =>
-                                    _confirmDelete(notification),
-                                child: _NotificationCard(
-                                  data: notification,
-                                  isDark: isDark,
-                                  isDeleting: _controller.isDeleting(
-                                    notification,
-                                  ),
-                                  onTap: () => _openNotification(notification),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ],
+              itemCount: 3 + notifications.length + (footer ? 1 : 0),
+              separatorBuilder: (_, index) =>
+                  SizedBox(height: index < 2 ? 18 : 10),
+              itemBuilder: (context, index) {
+                Widget content;
+                if (index == 0) {
+                  content = PageTopBar(
+                    title: NotificationTexts.title,
+                    subtitle: NotificationTexts.subtitle,
+                    showBackButton: true,
+                    backButtonKey: const Key(
+                      'courier_notifications_back_button',
                     ),
+                    onBackPressed: () => Navigator.maybePop(context),
+                    actions: [
+                      _NotificationActionButton(
+                        key: const Key('courier_notifications_mark_all'),
+                        isDark: isDark,
+                        icon: AppIcons.tick_circle,
+                        tooltip: NotificationTexts.markAllRead,
+                        onPressed:
+                            _controller.unreadCount == 0 ||
+                                _controller.isMarkingAllRead
+                            ? null
+                            : _markAllRead,
+                      ),
+                    ],
+                  );
+                } else if (index == 1) {
+                  content = _NotificationSummary(
+                    isDark: isDark,
+                    unreadCount: _controller.unreadCount,
+                    totalCount: _controller.totalCount,
+                  );
+                } else if (index == 2) {
+                  content = initialLoading
+                      ? const _NotificationsLoadingView()
+                      : _controller.errorMessage != null &&
+                            notifications.isEmpty
+                      ? _NotificationsErrorView(
+                          message: _controller.errorMessage!,
+                          onRetry: _controller.loadNotifications,
+                        )
+                      : notifications.isEmpty
+                      ? const _EmptyNotificationsView()
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              CommonTexts.today,
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w900),
+                            ),
+                            if (_controller.errorMessage != null)
+                              TextButton(
+                                onPressed: _controller.loadNotifications,
+                                child: Text(_controller.errorMessage!),
+                              ),
+                          ],
+                        );
+                } else if (index == notifications.length + 3) {
+                  content = Column(
+                    children: [
+                      if (_controller.moreError != null)
+                        Text(_controller.moreError!),
+                      TextButton(
+                        key: const ValueKey('courier_notifications_load_more'),
+                        onPressed:
+                            _controller.isLoadingMore || _controller.isLoading
+                            ? null
+                            : _controller.loadMore,
+                        child: _controller.isLoadingMore
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(DeliveredTexts.loadMore),
+                      ),
+                    ],
+                  );
+                } else {
+                  final notification = notifications[index - 3];
+                  content = Dismissible(
+                    key: ValueKey('courier_notification_${notification.id}'),
+                    direction: DismissDirection.horizontal,
+                    background: const _NotificationDismissBackground(
+                      alignment: AlignmentDirectional.centerStart,
+                    ),
+                    secondaryBackground: const _NotificationDismissBackground(
+                      alignment: AlignmentDirectional.centerEnd,
+                    ),
+                    confirmDismiss: (_) => _confirmDelete(notification),
+                    child: _NotificationCard(
+                      data: notification,
+                      isDark: isDark,
+                      isDeleting: _controller.isDeleting(notification),
+                      onTap: () => _openNotification(notification),
+                    ),
+                  );
+                }
+                return Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: maxWidth),
+                    child: content,
                   ),
-                ),
-              ],
+                );
+              },
             ),
           );
         },
