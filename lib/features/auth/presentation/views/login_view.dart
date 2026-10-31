@@ -114,7 +114,7 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Future<void> _openTechnicalSupport() async {
-    final uri = Uri.https('wa.me', '/201016487371');
+    final uri = Uri.https('wa.me', '/201500355776');
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!launched && mounted) {
       CustomSnackBar.showError(
