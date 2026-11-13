@@ -10,6 +10,7 @@ import '../../../../core/presentation/widgets/page_top_bar.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/theme/app_theme_controller.dart';
 import '../../domain/courier_account.dart';
+import '../../../app_updates/presentation/app_update_panel.dart';
 import '../controllers/courier_profile_controller.dart';
 
 part 'courier_profile_content_part.dart';
@@ -242,7 +243,7 @@ class _ProfileBody extends StatelessWidget {
           _SettingsSection(
             title: ProfileTexts.appSettings,
             isDark: isDark,
-            children: const [_ThemeModeTile()],
+            children: const [_ThemeModeTile(), AppUpdateCheckTile()],
           ),
           const SizedBox(height: 18),
           _LogoutButton(onPressed: () => _showLogoutDialog(context, onLogout)),

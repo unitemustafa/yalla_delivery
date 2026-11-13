@@ -149,6 +149,11 @@ both granted and denied. Windows tests do not validate native iOS builds.
 
 ## Project Structure
 
+Android APK self-updates are managed from the admin dashboard at `/app-updates`.
+See [publishing and device verification](../yalla_backend/docs/delivery-app-updates.md)
+for server migration, signed APK builds, and the download/install workflow.
+
+
 ```text
 lib/
 |-- core/                 # Authentication, networking, routing, and shared UI

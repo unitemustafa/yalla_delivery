@@ -17,6 +17,7 @@ import 'core/routing/app_router.dart';
 import 'core/routing/app_routes.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/app_theme_controller.dart';
+import 'features/app_updates/presentation/app_update_host.dart';
 
 @visibleForTesting
 Future<bool> presentCourierForegroundFeedback(
@@ -40,6 +41,11 @@ class YallaHomeApp extends StatefulWidget {
 }
 
 class _YallaHomeAppState extends State<YallaHomeApp> {
+  final _updatesReady = ValueNotifier(false);
+  late final _updateNavigationObserver = AppUpdateNavigationObserver(
+    _updatesReady,
+    splashRoute: AppRoutes.splash,
+  );
   int _handledSessionExpiredEventId = 0;
   int _handledPasswordChangedEventId = 0;
   StreamSubscription<CourierPushEvent>? _pushSubscription;
@@ -56,6 +62,7 @@ class _YallaHomeAppState extends State<YallaHomeApp> {
 
   @override
   void dispose() {
+    _updatesReady.dispose();
     SessionExpiredNotifier.instance.removeListener(_handleSessionExpired);
     PasswordChangedNotifier.instance.removeListener(_handlePasswordChanged);
     _pushSubscription?.cancel();
@@ -242,6 +249,7 @@ class _YallaHomeAppState extends State<YallaHomeApp> {
       valueListenable: AppThemeController.instance,
       builder: (context, themeMode, _) {
         return MaterialApp(
+          navigatorObservers: [_updateNavigationObserver],
           navigatorKey: AppNavigator.key,
           scaffoldMessengerKey: AppNavigator.scaffoldMessengerKey,
           debugShowCheckedModeBanner: false,
@@ -260,8 +268,11 @@ class _YallaHomeAppState extends State<YallaHomeApp> {
             return AndroidTabletViewport(
               child: Directionality(
                 textDirection: TextDirection.rtl,
-                child: OfflineConnectionBanner(
-                  child: child ?? const SizedBox.shrink(),
+                child: AppUpdateHost(
+                  ready: _updatesReady,
+                  child: OfflineConnectionBanner(
+                    child: child ?? const SizedBox.shrink(),
+                  ),
                 ),
               ),
             );
