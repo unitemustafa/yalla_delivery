@@ -18,21 +18,21 @@ class AppUpdateDialog extends StatelessWidget {
             color: AppColors.primary,
             size: 40,
           ),
-          title: const Text('تحديث يلا دليفيري', textAlign: TextAlign.center),
+          title: state is AppUpdateAvailable
+              ? null
+              : const Text('تحديث يلا دليفيري', textAlign: TextAlign.center),
           content: SizedBox(
             width: 360,
             child: SingleChildScrollView(child: AppUpdatePanel(state: state)),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                state is AppUpdateAvailable
-                    ? 'لاحقًا'
-                    : 'متابعة استخدام التطبيق',
-              ),
-            ),
-          ],
+          actions: state is AppUpdateAvailable
+              ? null
+              : [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('متابعة استخدام التطبيق'),
+                  ),
+                ],
         ),
       );
 }
@@ -54,7 +54,9 @@ class AppUpdatePanel extends StatelessWidget {
     final (title, description, action, onPressed) = switch (state) {
       AppUpdateAvailable(:final release) => (
         'تحديث جديد متاح · ${release.versionName}',
-        '${(release.fileSize / 1000000).toStringAsFixed(1)} MB • التحميل هيكمل في الخلفية',
+        compact
+            ? '${(release.fileSize / 1000000).toStringAsFixed(1)} MB • التحميل هيكمل في الخلفية'
+            : '',
         'تحميل الآن',
         () => cubit.download(),
       ),
@@ -138,23 +140,64 @@ class AppUpdatePanel extends StatelessWidget {
           const LinearProgressIndicator(),
         ],
         if (state case AppUpdateAvailable(:final release) when !compact) ...[
-          if (release.releaseNotes.isNotEmpty) ...[
+          if (release.releaseNotes.trim().isNotEmpty) ...[
             const SizedBox(height: 16),
             const Text(
               'الجديد في التحديث',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
-            Text(release.releaseNotes),
+            for (final note
+                in release.releaseNotes
+                    .split('\n')
+                    .map((line) => line.trim())
+                    .where((line) => line.isNotEmpty))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('•'),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(note)),
+                  ],
+                ),
+              ),
           ],
-          const SizedBox(height: 12),
-          const Text(
-            'بعد اكتمال التحميل هيظهر إشعار للتثبيت. قد يطلب أندرويد السماح بالتثبيت من يلا دليفيري.',
-          ),
         ],
         if (action.isNotEmpty) ...[
           const SizedBox(height: 10),
-          FilledButton(onPressed: onPressed, child: Text(action)),
+          if (!compact && state is AppUpdateAvailable)
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: FilledButton(
+                    onPressed: onPressed,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 48),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                    child: Text(action),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      side: const BorderSide(color: AppColors.error),
+                      minimumSize: const Size(0, 48),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                    child: const Text('لاحقًا'),
+                  ),
+                ),
+              ],
+            )
+          else
+            FilledButton(onPressed: onPressed, child: Text(action)),
         ],
       ],
     );

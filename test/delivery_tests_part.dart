@@ -417,7 +417,8 @@ void _registerDeliveryTests() {
 
     expect(order.customerName, 'المستلم');
     expect(order.phone, '01111111111');
-    expect(order.address, contains('شارع التحرير'));
+    expect(order.address, isNot(contains('شارع التحرير')));
+    expect(order.mapQuery, contains('شارع التحرير'));
     expect(order.addressInstructions, 'اتصل عند الوصول');
     expect(order.orderImageUrl, endsWith('/api/v1/orders/2/image/'));
     expect(order.paymentMethod, 'cash_on_delivery');

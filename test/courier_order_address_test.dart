@@ -25,7 +25,6 @@ void main() {
       });
 
       for (final detail in [
-        'Map street, Cairo',
         'Customer street',
         'Office destination',
         'Building 7',
@@ -34,6 +33,8 @@ void main() {
       ]) {
         expect(order.address, contains(detail));
       }
+      expect(order.address, isNot(contains('Map street, Cairo')));
+      expect(order.mapQuery, contains('Map street, Cairo'));
       expect(order.mapQuery, contains('Office destination'));
       expect(order.phone, '01111111111');
       expect(order.addressInstructions, 'Call at gate');
@@ -48,5 +49,18 @@ void main() {
       'delivery_address': {'details': 'Legacy street'},
     });
     expect(order.address, 'Legacy street');
+  });
+
+  test('map description stays available when manual details are missing', () {
+    final order = CourierOrder.fromJson({
+      'id': 3,
+      'delivery_address': {
+        'name': 'Home',
+        'formatted_address': 'Map street, Cairo',
+      },
+    });
+    expect(order.address, 'Home');
+    expect(order.mapQuery, contains('Map street, Cairo'));
+    expect(order.customerLocation, isNull);
   });
 }

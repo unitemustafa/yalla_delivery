@@ -270,7 +270,6 @@ class CourierOrder {
     final cityName =
         _clean(addressServiceCity?['name']) ?? _clean(serviceCity?['name']);
     final displayAddress = _joinUnique([
-      formattedAddress,
       street,
       buildingName,
       _clean(address?['company_name']),
@@ -356,7 +355,13 @@ class CourierOrder {
       serviceCityName: cityName,
       deliveryAreaName: areaName,
       customerAvatarUrl: url(customer?['avatar_url']),
-      mapQuery: _joinUnique([displayAddress, label, areaName, cityName]),
+      mapQuery: _joinUnique([
+        formattedAddress,
+        displayAddress,
+        label,
+        areaName,
+        cityName,
+      ]),
       customerLocation: hasCustomerLocation
           ? OrderLocation(latitude: latitude, longitude: longitude)
           : null,
