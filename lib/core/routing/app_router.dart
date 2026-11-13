@@ -4,6 +4,7 @@ import '../../features/auth/presentation/views/login_view.dart';
 import '../../features/deliveries/presentation/views/courier_shell_view.dart';
 import '../../features/splash/presentation/views/splash_view.dart';
 import 'app_routes.dart';
+import 'double_back_to_exit.dart';
 
 class AppRouter {
   AppRouter._();
@@ -18,7 +19,7 @@ class AppRouter {
 
     return PageRouteBuilder<dynamic>(
       settings: settings,
-      pageBuilder: (_, _, _) => page,
+      pageBuilder: (_, _, _) => DoubleBackToExit(child: page),
       transitionDuration: const Duration(milliseconds: 500),
       reverseTransitionDuration: const Duration(milliseconds: 350),
       transitionsBuilder: (_, animation, _, child) {

@@ -17,6 +17,7 @@ abstract final class BrandTexts {
 
 /// نصوص متكررة في أكثر من شاشة.
 abstract final class CommonTexts {
+  static const pressBackAgainToExit = 'اضغط رجوع مرة تانية للخروج';
   static const retry = 'إعادة المحاولة';
   static const retrying = 'جاري المحاولة...';
   static const cancel = 'إلغاء';

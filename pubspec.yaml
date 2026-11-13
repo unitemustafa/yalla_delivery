@@ -2,7 +2,7 @@ name: yalla_home
 description: "Yalla Delivery courier app."
 publish_to: 'none'
 
-version: 1.0.12+4016
+version: 1.0.13+4017
 
 environment:
   sdk: ^3.11.4
